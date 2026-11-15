@@ -14,6 +14,7 @@ from .ferramentas import Contexto
 
 RAIZ = Path(__file__).resolve().parent.parent.parent
 PASTA_ENTRADA = Path(os.environ.get("ERP_PASTA_ENTRADA", RAIZ / "dados" / "entrada"))
+PASTA_DOCUMENTOS = Path(os.environ.get("ARQUIVO_DOCUMENTOS", PASTA_ESTADO / "documentos"))
 
 
 def equipe_whatsapp() -> dict[str, str]:
@@ -30,5 +31,6 @@ def equipe_whatsapp() -> dict[str, str]:
 def abrir_assistente(loja: Loja) -> Assistente:
     config_imap = ConfigIMAP.do_ambiente()
     ctx = Contexto(loja, Base(PASTA_ESTADO / "interno.db", RAIZ / "config" / "erps.json"),
-                   CaixaIMAP(config_imap) if config_imap else None, PASTA_ENTRADA, PASTA_ESTADO / "exportacoes")
+                   CaixaIMAP(config_imap) if config_imap else None, PASTA_ENTRADA, PASTA_ESTADO / "exportacoes",
+                   PASTA_DOCUMENTOS)
     return Assistente(ctx, PASTA_ESTADO / "conversas_equipe")

@@ -19,6 +19,9 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ERPS = ("erp19", "erp22")
+# Os dois ERPs são sequenciais: o ERP19 tem a história até julho de 2022 e o ERP22 daí em diante.
+# Cada data tem um único sistema "oficial"; dá para mudar em config/erps.json ("periodo": [inicio, fim]).
+PERIODOS_PADRAO = {"erp19": ("2016-01-01", "2022-07-31"), "erp22": ("2022-08-01", "9999-12-31")}
 CAMPOS = ("documento", "data", "vendedor", "provincia", "cliente", "valor")
 OBRIGATORIOS = ("documento", "data", "valor")
 
@@ -34,7 +37,7 @@ SINONIMOS = {
               "totalcomiva", "liquido"],
 }
 AGRUPAMENTOS = {"vendedor": "vendedor", "provincia": "provincia", "dia": "data", "erp": "erp",
-                "mes": "substr(data, 1, 7)", "cliente": "cliente"}
+                "mes": "substr(data, 1, 7)", "ano": "substr(data, 1, 4)", "cliente": "cliente"}
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS vendas (
@@ -52,6 +55,9 @@ CREATE TABLE IF NOT EXISTS faturas (
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT, rede TEXT, texto TEXT, sugestao_imagem TEXT, status TEXT,
     criado_em TEXT);
+CREATE TABLE IF NOT EXISTS documentos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT UNIQUE, email_uid TEXT, remetente TEXT, assunto TEXT,
+    data_email TEXT, nome TEXT, tipo TEXT, tamanho_kb REAL, caminho TEXT, copiado_em TEXT);
 CREATE TABLE IF NOT EXISTS exportacoes (
     id INTEGER PRIMARY KEY AUTOINCREMENT, inicio TEXT, fim TEXT, arquivo TEXT, enviado INTEGER, em TEXT);
 """
@@ -175,6 +181,15 @@ class Base:
         self.config = {}
         if config_erps and Path(config_erps).exists():
             self.config = json.loads(Path(config_erps).read_text(encoding="utf-8"))
+        self.periodos = {}
+        for erp in ERPS:
+            inicio, fim = self.config.get(erp, {}).get("periodo", PERIODOS_PADRAO[erp])
+            self.periodos[erp] = (date.fromisoformat(inicio).isoformat(), date.fromisoformat(fim).isoformat())
+
+    def _filtro_oficial(self) -> str:
+        """Condição SQL que mantém cada documento só no período oficial do seu ERP (datas já validadas)."""
+        return "(" + " OR ".join(f"(erp = '{erp}' AND data BETWEEN '{a}' AND '{b}')"
+                                 for erp, (a, b) in self.periodos.items()) + ")"
 
     def _q(self, sql: str, args: tuple = ()) -> list[dict]:
         return [dict(r) for r in self.db.execute(sql, args).fetchall()]
@@ -218,9 +233,17 @@ class Base:
                             (hash_, erp, caminho.name, len(registros), inicio, fim,
                              datetime.now().isoformat(timespec="minutes")))
         colunas = {campo: str(linhas[linha_cab][i]) for campo, i in mapa.items()}
-        return {"ok": True, "erp": erp, "arquivo": caminho.name, "linhas_importadas": len(registros),
-                "linhas_ignoradas": ignoradas, "substituidas": apagadas, "periodo": [inicio, fim],
-                "colunas_reconhecidas": colunas}
+        a, b = self.periodos[erp]
+        fora = [r for r in registros if not a <= r[2] <= b]
+        resultado = {"ok": True, "erp": erp, "arquivo": caminho.name, "linhas_importadas": len(registros),
+                     "linhas_ignoradas": ignoradas, "substituidas": apagadas, "periodo": [inicio, fim],
+                     "colunas_reconhecidas": colunas}
+        if fora:
+            resultado["aviso_periodo"] = (
+                f"{len(fora)} linha(s) com data fora do período do {erp} ({a} a {b}), entre "
+                f"{min(r[2] for r in fora)} e {max(r[2] for r in fora)}. Ficam guardadas, mas não entram nos "
+                "totais consolidados (podem ser documentos migrados do outro sistema).")
+        return resultado
 
     def importar_pasta(self, pasta: Path) -> list[dict]:
         """Importa os relatórios novos de pasta/erp19 e pasta/erp22."""
@@ -235,51 +258,72 @@ class Base:
         return resultados
 
     # ---------------------------------------------------------------- análises
-    def _docs(self, inicio: str, fim: str, erp: str | None = None) -> str:
-        """Subconsulta com um registro por documento (soma as linhas de itens do mesmo documento)."""
+    def _docs(self, erp: str | None = None, oficial: bool = True) -> str:
+        """Subconsulta com um registro por documento (soma as linhas de itens do mesmo documento).
+        Parâmetros: inicio, fim[, erp]."""
         filtro = "AND erp = ?" if erp else ""
+        if oficial:
+            filtro += f" AND {self._filtro_oficial()}"
         return (f"(SELECT erp, documento, MIN(data) AS data, MAX(vendedor) AS vendedor, "
                 f"MAX(provincia) AS provincia, MAX(cliente) AS cliente, ROUND(SUM(valor), 2) AS valor "
                 f"FROM vendas WHERE data BETWEEN ? AND ? {filtro} GROUP BY erp, documento)")
 
     def resumo_vendas(self, inicio: str, fim: str, agrupar_por: str, erp: str | None) -> list[dict]:
+        """Sem `erp`: visão consolidada 2016 até hoje, cada data contada só no seu sistema oficial."""
         if agrupar_por not in AGRUPAMENTOS:
             raise ErroDados(f"Agrupe por: {', '.join(AGRUPAMENTOS)}.")
         expr = AGRUPAMENTOS[agrupar_por]
         args = (inicio, fim, erp) if erp else (inicio, fim)
+        ordem = "1" if agrupar_por in ("dia", "mes", "ano") else "valor_total DESC"
         return self._q(
-            f"SELECT COALESCE({expr}, '(sem informação)') AS {agrupar_por}, erp, COUNT(*) AS documentos, "
+            f"SELECT COALESCE({expr}, '(sem informação)') AS {agrupar_por}, "
+            f"GROUP_CONCAT(DISTINCT erp) AS sistemas, COUNT(*) AS documentos, "
             f"ROUND(SUM(valor), 2) AS valor_total, ROUND(AVG(valor), 2) AS ticket_medio "
-            f"FROM {self._docs(inicio, fim, erp)} GROUP BY 1, erp ORDER BY erp, valor_total DESC", args)
+            f"FROM {self._docs(erp)} GROUP BY 1 ORDER BY {ordem} LIMIT 400", args)
 
-    def conciliar(self, inicio: str, fim: str, tolerancia: float = 0.01) -> dict:
-        """Cruza os dois ERPs documento a documento."""
-        a, b = ERPS
-        docs = {erp: {r["documento"]: r for r in self._q(f"SELECT * FROM {self._docs(inicio, fim, erp)}",
-                                                         (inicio, fim, erp))} for erp in ERPS}
-        so_a = sorted(set(docs[a]) - set(docs[b]))
-        so_b = sorted(set(docs[b]) - set(docs[a]))
-        divergentes = [
-            {"documento": d, f"valor_{a}": docs[a][d]["valor"], f"valor_{b}": docs[b][d]["valor"],
-             "diferenca": round(docs[a][d]["valor"] - docs[b][d]["valor"], 2)}
-            for d in sorted(set(docs[a]) & set(docs[b]))
-            if abs(docs[a][d]["valor"] - docs[b][d]["valor"]) > tolerancia
-        ]
-        por_dia: dict[str, dict] = {}
-        for erp in ERPS:
-            for r in docs[erp].values():
-                dia = por_dia.setdefault(r["data"], {f"docs_{e}": 0 for e in ERPS} | {f"valor_{e}": 0.0 for e in ERPS})
-                dia[f"docs_{erp}"] += 1
-                dia[f"valor_{erp}"] = round(dia[f"valor_{erp}"] + r["valor"], 2)
+    def verificar_historico(self, inicio: str, fim: str) -> dict:
+        """Confere se a história ERP19 (até jul/2022) + ERP22 (desde ago/2022) está completa e sem repetições."""
+        por_erp = {}
+        for erp, (a, b) in self.periodos.items():
+            carregado = self._q("SELECT MIN(data) AS primeira, MAX(data) AS ultima FROM vendas WHERE erp = ?", (erp,))[0]
+            dentro = self._q(f"SELECT COUNT(*) AS documentos, ROUND(COALESCE(SUM(valor), 0), 2) AS valor "
+                             f"FROM {self._docs(erp)}", (inicio, fim, erp))[0]
+            fora = self._q(f"SELECT COUNT(*) AS documentos, ROUND(COALESCE(SUM(valor), 0), 2) AS valor, "
+                           f"MIN(data) AS de, MAX(data) AS ate FROM {self._docs(erp, oficial=False)} "
+                           f"WHERE data NOT BETWEEN ? AND ?", (inicio, fim, erp, a, b))[0]
+            por_erp[erp] = {"periodo_oficial": [a, b if b < "9999" else "hoje"], "dados_carregados": carregado,
+                            "no_periodo_oficial": dentro, "fora_do_periodo_oficial": fora}
+
+        por_mes = {r["mes"]: r for r in self.resumo_vendas(inicio, fim, "mes", None)}
+        hoje = date.today().isoformat()
+        meses, mes = [], date.fromisoformat(inicio).replace(day=1)
+        limite = min(fim, hoje)
+        while mes.isoformat() <= limite:
+            meses.append(mes.isoformat()[:7])
+            mes = (mes + timedelta(days=32)).replace(day=1)
+        sem_dados = [m for m in meses if m not in por_mes]
+
+        repetidos = self._q(
+            "SELECT a.documento, a.data AS data_erp19, a.valor AS valor_erp19, b.data AS data_erp22, "
+            "b.valor AS valor_erp22 FROM "
+            "(SELECT documento, MIN(data) AS data, ROUND(SUM(valor), 2) AS valor FROM vendas WHERE erp = 'erp19' "
+            " GROUP BY documento) a JOIN "
+            "(SELECT documento, MIN(data) AS data, ROUND(SUM(valor), 2) AS valor FROM vendas WHERE erp = 'erp22' "
+            " GROUP BY documento) b USING (documento) "
+            "WHERE a.data BETWEEN ? AND ? OR b.data BETWEEN ? AND ? ORDER BY a.data LIMIT 51",
+            (inicio, fim, inicio, fim))
+
+        fim19 = date.fromisoformat(self.periodos["erp19"][1])
+        transicao = [m for m in por_mes.values()
+                     if abs((date.fromisoformat(m["mes"] + "-01") - fim19.replace(day=1)).days) <= 100]
         return {
             "periodo": [inicio, fim],
-            "totais": {erp: {"documentos": len(docs[erp]),
-                             "valor": round(sum(r["valor"] for r in docs[erp].values()), 2)} for erp in ERPS},
-            "documentos_em_ambos": len(set(docs[a]) & set(docs[b])),
-            f"so_no_{a}": [docs[a][d] for d in so_a[:50]], f"qtd_so_no_{a}": len(so_a),
-            f"so_no_{b}": [docs[b][d] for d in so_b[:50]], f"qtd_so_no_{b}": len(so_b),
-            "valores_divergentes": divergentes[:50], "qtd_valores_divergentes": len(divergentes),
-            "por_dia": [{"data": d, **v} for d, v in sorted(por_dia.items())],
+            "por_erp": por_erp,
+            "meses_sem_nenhum_documento": sem_dados,
+            "documentos_com_mesmo_numero_nos_dois_erps": repetidos[:50],
+            "qtd_documentos_repetidos": len(repetidos) if len(repetidos) <= 50 else "mais de 50",
+            "meses_da_transicao_erp19_para_erp22": transicao,
+            "por_ano": self.resumo_vendas(inicio, fim, "ano", None),
         }
 
     def importacoes(self) -> list[dict]:
@@ -313,7 +357,7 @@ class Base:
         if f["valor"] is not None and f["data_emissao"]:
             d = date.fromisoformat(f["data_emissao"][:10])
             achados += [r | {"motivo": "mesmo valor e data próxima"} for r in self._q(
-                f"SELECT erp, documento, data, valor, cliente FROM {self._docs((d - timedelta(7)).isoformat(), (d + timedelta(7)).isoformat())} "
+                f"SELECT erp, documento, data, valor, cliente FROM {self._docs(oficial=False)} "
                 "WHERE ABS(valor - ?) < 0.01", ((d - timedelta(7)).isoformat(), (d + timedelta(7)).isoformat(), f["valor"]))]
         vistos, unicos = set(), []
         for r in achados:
@@ -333,9 +377,10 @@ class Base:
             raise ErroDados(f"Fatura {fatura_id} não existe.")
         return {"ok": True}
 
-    def listar_faturas(self, so_sem_relacao: bool) -> list[dict]:
+    def listar_faturas(self, so_sem_relacao: bool, limite: int | None = 50) -> list[dict]:
         filtro = "WHERE documento_erp IS NULL" if so_sem_relacao else ""
-        return self._q(f"SELECT * FROM faturas {filtro} ORDER BY data_emissao DESC LIMIT 50")
+        corte = f"LIMIT {int(limite)}" if limite else ""
+        return self._q(f"SELECT * FROM faturas {filtro} ORDER BY data_emissao DESC {corte}")
 
     # ------------------------------------------------------------------- posts
     def salvar_post(self, rede: str, texto: str, sugestao_imagem: str | None) -> dict:
@@ -347,3 +392,28 @@ class Base:
 
     def listar_posts(self) -> list[dict]:
         return self._q("SELECT * FROM posts ORDER BY id DESC LIMIT 20")
+
+    # -------------------------------------------------------------- documentos
+    def documento_existente(self, hash_: str) -> dict | None:
+        r = self._q("SELECT * FROM documentos WHERE hash = ?", (hash_,))
+        return r[0] if r else None
+
+    def registrar_documento(self, d: dict) -> int:
+        with self.db:
+            cur = self.db.execute(
+                "INSERT INTO documentos (hash, email_uid, remetente, assunto, data_email, nome, tipo, tamanho_kb, "
+                "caminho, copiado_em) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (d["hash"], d["email_uid"], d["remetente"], d["assunto"], d["data_email"], d["nome"], d["tipo"],
+                 d["tamanho_kb"], d["caminho"], datetime.now().isoformat(timespec="minutes")))
+        return cur.lastrowid
+
+    def listar_documentos(self, busca: str | None, desde: str | None) -> list[dict]:
+        sql, args = "SELECT id, nome, tipo, tamanho_kb, remetente, assunto, data_email, caminho FROM documentos WHERE 1=1", []
+        if busca:
+            sql += " AND (nome LIKE ? OR remetente LIKE ? OR assunto LIKE ?)"
+            args += [f"%{busca}%"] * 3
+        if desde:
+            sql += " AND data_email >= ?"
+            args.append(desde)
+        return self._q(sql + " ORDER BY data_email DESC LIMIT 100", tuple(args))
+

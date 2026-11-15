@@ -1,8 +1,9 @@
-"""Leitura de e-mails por IMAP, somente leitura.
+"""Leitura de e-mails por IMAP e cópia dos documentos anexados.
 
-A caixa é aberta em modo leitura (`readonly`) e as mensagens são baixadas com
-BODY.PEEK: nada é apagado, movido ou marcado como lido. O assistente não tem
-nenhuma forma de enviar e-mails.
+A caixa é aberta em modo `readonly` e as mensagens são baixadas com BODY.PEEK:
+os documentos são extraídos e copiados para o arquivo da livraria (veja
+documentos.py), mas nada é apagado, movido ou marcado como lido na caixa, e o
+assistente não envia e-mails.
 
 Variáveis de ambiente: IMAP_HOST, IMAP_PORTA (993), IMAP_USUARIO, IMAP_SENHA, IMAP_PASTA (INBOX).
 """
@@ -165,6 +166,34 @@ class CaixaIMAP:
         conexao = self._abrir()
         try:
             return self._baixar(conexao, uid, com_conteudo=True)
+        finally:
+            self._fechar(conexao)
+
+    def bruto(self, uid: str) -> bytes:
+        """O e-mail original completo (.eml), para copiar documentos e anexos."""
+        if not uid.isdigit():
+            raise ValueError("uid inválido")
+        conexao = self._abrir()
+        try:
+            estado, dados = conexao.uid("FETCH", uid, "(BODY.PEEK[])")
+            if estado != "OK" or not dados or not isinstance(dados[0], tuple):
+                raise RuntimeError(f"Não encontrei o e-mail {uid}")
+            return dados[0][1]
+        finally:
+            self._fechar(conexao)
+
+    def uids_desde(self, desde: date, remetente: str | None, assunto: str | None, maximo: int) -> list[str]:
+        criterios = ["SINCE", f"{desde.day:02d}-{MESES_IMAP[desde.month - 1]}-{desde.year}"]
+        if remetente:
+            criterios += ["FROM", f'"{_ascii(remetente)}"']
+        if assunto:
+            criterios += ["SUBJECT", f'"{_ascii(assunto)}"']
+        conexao = self._abrir()
+        try:
+            estado, dados = conexao.uid("SEARCH", *criterios)
+            if estado != "OK":
+                raise RuntimeError("A busca IMAP falhou")
+            return [u.decode() for u in dados[0].split()[::-1][:maximo]]
         finally:
             self._fechar(conexao)
 

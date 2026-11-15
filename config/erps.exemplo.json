@@ -1,5 +1,31 @@
 {
-  "_ajuda": "Copie para config/erps.json só se o assistente não reconhecer as colunas sozinho. Escreva o nome da coluna exatamente como aparece no relatório exportado.",
-  "erp19": {"colunas": {"documento": "Nº Documento", "data": "Data Emissão", "vendedor": "Vendedor", "provincia": "Província", "cliente": "Cliente", "valor": "Total"}},
-  "erp22": {"colunas": {"documento": "Documento", "data": "Data", "vendedor": "Operador", "provincia": "Loja", "cliente": "Entidade", "valor": "Valor Total"}}
+  "_ajuda": "Copie para config/erps.json só se precisar: nomes das colunas exatamente como aparecem no relatório exportado, e o período de cada ERP.",
+  "erp19": {
+    "colunas": {
+      "documento": "Nº Documento",
+      "data": "Data Emissão",
+      "vendedor": "Vendedor",
+      "provincia": "Província",
+      "cliente": "Cliente",
+      "valor": "Total"
+    },
+    "periodo": [
+      "2016-01-01",
+      "2022-07-31"
+    ]
+  },
+  "erp22": {
+    "colunas": {
+      "documento": "Documento",
+      "data": "Data",
+      "vendedor": "Operador",
+      "provincia": "Loja",
+      "cliente": "Entidade",
+      "valor": "Valor Total"
+    },
+    "periodo": [
+      "2022-08-01",
+      "9999-12-31"
+    ]
+  }
 }

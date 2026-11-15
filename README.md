@@ -96,13 +96,15 @@ python -m livraria_agentes.equipe liberar 5511...              # o robô volta a
 Um assistente separado, só para a equipe, que conversa pelo terminal ou pelo WhatsApp (números em
 `EQUIPE_WHATSAPP`). Ele:
 
-- **Lê e resume e-mails** por IMAP, **somente leitura**: não envia, não apaga, não marca como lido.
-  Lê o texto de anexos PDF, planilhas, XML e CSV.
-- **Registra faturas, recibos e comprovantes** encontrados nos e-mails e procura o documento
-  correspondente no ERP19/ERP22.
-- **Importa os relatórios do ERP19 e do ERP22** (planilha `.xlsx` ou `.csv` exportada de cada um),
-  calcula vendas por dia, mês, vendedor, província e cliente, conta documentos por dia e **cruza os dois
-  ERPs** (documentos que faltam num deles, valores diferentes).
+- **Lê, resume e extrai documentos dos e-mails** por IMAP: copia anexos (e o próprio e-mail, se pedirem)
+  para o arquivo da livraria, organizado por mês e remetente, sem duplicar. Lê o texto de PDF, planilhas,
+  XML e CSV. Não envia, não apaga e não move e-mails.
+- **Registra faturas, recibos e comprovantes** encontrados nos e-mails, procura o documento
+  correspondente nos ERPs e extrai a tabela de faturas para planilha Excel.
+- **Junta o ERP19 (2016 a julho/2022) e o ERP22 (agosto/2022 até hoje) numa história única**: importa os
+  relatórios exportados (`.xlsx` ou `.csv`), calcula vendas por dia, mês, ano, vendedor, província e
+  cliente e o número de documentos por dia, e confere a história (meses sem dados, documentos fora do
+  período do seu sistema, números repetidos nos dois ERPs, a passagem de julho para agosto de 2022).
 - **Exporta tudo consolidado para o superapp** (arquivo JSON; envio automático quando `SUPERAPP_URL`
   estiver definida).
 - Cuida de **estoque e catálogo**, escreve **rascunhos de posts** para as redes sociais e **pesquisa na web**.
@@ -125,6 +127,7 @@ reconhecidas, copie `config/erps.exemplo.json` para `config/erps.json` e escreva
 | `IMAP_HOST`, `IMAP_PORTA`, `IMAP_USUARIO`, `IMAP_SENHA`, `IMAP_PASTA` | Caixa de e-mail (porta 993, pasta INBOX por padrão) |
 | `EQUIPE_WHATSAPP` | Números da equipe, ex.: `244923000001:Rogério,244923000002:Ana` |
 | `SUPERAPP_URL`, `SUPERAPP_TOKEN` | Endereço e token do superapp (opcional) |
+| `ARQUIVO_DOCUMENTOS` | Pasta onde os documentos copiados dos e-mails são guardados |
 | `LIVRARIA_FUSO` | Fuso horário, ex.: `Africa/Luanda` (padrão `America/Sao_Paulo`) |
 
 ## Testes

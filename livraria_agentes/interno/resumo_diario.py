@@ -21,10 +21,10 @@ from . import abrir_assistente, equipe_whatsapp
 PEDIDO = """\
 Prepare o resumo diário da livraria para a equipe:
 1. Importe os relatórios novos dos ERPs, se houver.
-2. Vendas de ontem e do mês até ontem por ERP, com os 3 melhores vendedores e províncias; aponte
-   diferenças entre o ERP19 e o ERP22 (documentos que faltam num deles e valores diferentes).
-3. E-mails desde ontem: o que pede ação, faturas e comprovantes (registre-os e mostre a que documento
-   dos ERPs podem corresponder) e qualquer suspeita de fraude.
+2. Vendas de ontem e do mês até ontem (ERP22), com os 3 melhores vendedores e províncias, comparando
+   com o mesmo mês do ano anterior (se for antes de ago/2022, avise que o número vem do ERP19).
+3. E-mails desde ontem: o que pede ação, faturas e comprovantes (copie os documentos, registre as
+   faturas e mostre a que documento dos ERPs podem corresponder) e qualquer suspeita de fraude.
 4. Atendimento por WhatsApp: pedidos, pagamentos para conferir, clientes esperando atendente, chamados.
 5. Livros com estoque de 3 unidades ou menos.
 Seja objetivo; se alguma fonte não estiver configurada ou disponível, diga em uma linha e siga."""

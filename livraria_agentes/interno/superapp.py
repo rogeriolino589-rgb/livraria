@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import httpx
@@ -19,17 +19,22 @@ from .base import ERPS, Base
 VERSAO_FORMATO = 1
 
 
+def _dias(inicio: str, fim: str) -> int:
+    return (date.fromisoformat(fim) - date.fromisoformat(inicio)).days
+
+
 def montar(base: Base, inicio: str, fim: str) -> dict:
     return {
         "formato": VERSAO_FORMATO,
         "gerado_em": datetime.now().isoformat(timespec="seconds"),
         "periodo": {"inicio": inicio, "fim": fim},
+        # Visão única 2016 até hoje: ERP19 até jul/2022, ERP22 a partir de ago/2022.
         "vendas": {
             agrupamento: base.resumo_vendas(inicio, fim, agrupamento, None)
-            for agrupamento in ("dia", "vendedor", "provincia")
+            for agrupamento in (("dia" if _dias(inicio, fim) <= 92 else "mes"), "ano", "vendedor", "provincia")
         },
-        "conciliacao_erps": base.conciliar(inicio, fim),
-        "faturas_email": [f for f in base.listar_faturas(False)
+        "verificacao_historico": base.verificar_historico(inicio, fim),
+        "faturas_email": [f for f in base.listar_faturas(False, None)
                           if f["data_emissao"] and inicio <= f["data_emissao"][:10] <= fim],
         "erps": list(ERPS),
     }
