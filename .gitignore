@@ -4,3 +4,6 @@ __pycache__/
 dados/estado/
 .pytest_cache/
 *.egg-info/
+dados/entrada/*/*
+!dados/entrada/*/.gitkeep
+config/erps.json

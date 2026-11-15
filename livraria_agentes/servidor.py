@@ -8,6 +8,7 @@ Variáveis de ambiente:
     WHATSAPP_PHONE_NUMBER_ID  id do número (WhatsApp > Configuração da API, no app da Meta)
     WHATSAPP_VERIFY_TOKEN     uma senha que você inventa e repete na configuração do webhook na Meta
     WHATSAPP_APP_SECRET       chave secreta do app (Configurações do app > Básico)
+    EQUIPE_WHATSAPP           números da equipe que falam com o assistente interno, ex.: "244923000001:Rogério"
     PORT                      porta HTTP (padrão 8000)
 
 Na Meta, configure a URL de callback como https://SEU-DOMINIO/webhook e assine o campo "messages".
@@ -73,7 +74,11 @@ def assinatura_valida(corpo: bytes, cabecalho: str | None, segredo: str) -> bool
     return hmac.compare_digest(esperado, cabecalho.removeprefix("sha256="))
 
 
-def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret: str) -> FastAPI:
+def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret: str,
+              assistente=None, equipe: dict[str, str] | None = None) -> FastAPI:
+    """`equipe` ({telefone: nome}) conversa com o `assistente` interno; os demais números, com os agentes
+    de atendimento."""
+    equipe = equipe or {}
     app = FastAPI(title="Livraria - webhook do WhatsApp", docs_url=None, redoc_url=None)
     recentes = _Recentes()
     travas: dict[str, threading.Lock] = {}
@@ -91,8 +96,11 @@ def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret:
                 if texto is None:
                     canal.enviar(telefone, MSG_SO_TEXTO)
                     return
-                resposta = motor.responder(telefone, texto)
-                for parte in resposta.textos:
+                if telefone in equipe and assistente is not None:
+                    textos = assistente.responder(f"whatsapp-{telefone}", texto, equipe[telefone])
+                else:
+                    textos = motor.responder(telefone, texto).textos
+                for parte in textos:
                     canal.enviar(telefone, parte)
             except Exception:
                 log.exception("Erro ao atender %s (mensagem %s)", telefone, mensagem_id)
@@ -142,9 +150,14 @@ def main() -> None:
                 if not os.environ.get(v)]
     if faltando:
         raise SystemExit(f"Configure as variáveis de ambiente: {', '.join(faltando)}")
-    _, motor = abrir()
+    from .interno import abrir_assistente, equipe_whatsapp
+
+    loja, motor = abrir()
+    equipe = equipe_whatsapp()
+    if equipe:
+        log.info("Equipe com acesso ao assistente interno: %s", ", ".join(equipe.values()))
     app = criar_app(motor, CanalWhatsApp.do_ambiente(), os.environ["WHATSAPP_VERIFY_TOKEN"],
-                    os.environ["WHATSAPP_APP_SECRET"])
+                    os.environ["WHATSAPP_APP_SECRET"], abrir_assistente(loja) if equipe else None, equipe)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
 
 

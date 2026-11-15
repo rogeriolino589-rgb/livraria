@@ -1,0 +1,5 @@
+{
+  "_ajuda": "Copie para config/erps.json só se o assistente não reconhecer as colunas sozinho. Escreva o nome da coluna exatamente como aparece no relatório exportado.",
+  "erp19": {"colunas": {"documento": "Nº Documento", "data": "Data Emissão", "vendedor": "Vendedor", "provincia": "Província", "cliente": "Cliente", "valor": "Total"}},
+  "erp22": {"colunas": {"documento": "Documento", "data": "Data", "vendedor": "Operador", "provincia": "Loja", "cliente": "Entidade", "valor": "Valor Total"}}
+}

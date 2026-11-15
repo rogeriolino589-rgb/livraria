@@ -91,6 +91,42 @@ python -m livraria_agentes.equipe responder 5511... "Oi! Aqui é a Júlia, da li
 python -m livraria_agentes.equipe liberar 5511...              # o robô volta a atender
 ```
 
+## Assistente interno (equipe da livraria)
+
+Um assistente separado, só para a equipe, que conversa pelo terminal ou pelo WhatsApp (números em
+`EQUIPE_WHATSAPP`). Ele:
+
+- **Lê e resume e-mails** por IMAP, **somente leitura**: não envia, não apaga, não marca como lido.
+  Lê o texto de anexos PDF, planilhas, XML e CSV.
+- **Registra faturas, recibos e comprovantes** encontrados nos e-mails e procura o documento
+  correspondente no ERP19/ERP22.
+- **Importa os relatórios do ERP19 e do ERP22** (planilha `.xlsx` ou `.csv` exportada de cada um),
+  calcula vendas por dia, mês, vendedor, província e cliente, conta documentos por dia e **cruza os dois
+  ERPs** (documentos que faltam num deles, valores diferentes).
+- **Exporta tudo consolidado para o superapp** (arquivo JSON; envio automático quando `SUPERAPP_URL`
+  estiver definida).
+- Cuida de **estoque e catálogo**, escreve **rascunhos de posts** para as redes sociais e **pesquisa na web**.
+- Faz um **resumo diário** para a equipe.
+
+Ações que mudam dados (cadastrar livro, mudar estoque, enviar ao superapp) só acontecem com pedido e
+confirmação da equipe na conversa. Instruções que venham dentro de e-mails ou sites são ignoradas.
+
+```bash
+python -m livraria_agentes.interno.chat --nome Rogério      # chat no terminal
+python -m livraria_agentes.interno.resumo_diario            # resumo do dia (--whatsapp para enviar)
+```
+
+Relatórios dos ERPs: coloque os arquivos exportados em `dados/entrada/erp19/` e `dados/entrada/erp22/` e
+peça "importe os relatórios novos" (ou use `/importar arquivo.xlsx erp19` no chat). Se as colunas não forem
+reconhecidas, copie `config/erps.exemplo.json` para `config/erps.json` e escreva os nomes das colunas.
+
+| Variável | O que é |
+|---|---|
+| `IMAP_HOST`, `IMAP_PORTA`, `IMAP_USUARIO`, `IMAP_SENHA`, `IMAP_PASTA` | Caixa de e-mail (porta 993, pasta INBOX por padrão) |
+| `EQUIPE_WHATSAPP` | Números da equipe, ex.: `244923000001:Rogério,244923000002:Ana` |
+| `SUPERAPP_URL`, `SUPERAPP_TOKEN` | Endereço e token do superapp (opcional) |
+| `LIVRARIA_FUSO` | Fuso horário, ex.: `Africa/Luanda` (padrão `America/Sao_Paulo`) |
+
 ## Testes
 
 ```bash

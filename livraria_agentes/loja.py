@@ -8,6 +8,7 @@ agendamentos de outra pessoa, mesmo que peça.
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import shutil
 import threading
@@ -15,7 +16,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-FUSO = ZoneInfo("America/Sao_Paulo")
+FUSO = ZoneInfo(os.environ.get("LIVRARIA_FUSO", "America/Sao_Paulo"))
 SEMENTE = Path(__file__).resolve().parent.parent / "dados" / "loja_inicial.json"
 
 # Horário de funcionamento para agendamentos: segunda (0) a sábado (5).
@@ -316,3 +317,58 @@ class Loja:
 
     def link_pagamento(self, pedido: dict) -> str:
         return self._link(pedido)
+
+    # ------------------------------------------- funções da equipe (assistente interno)
+    def estoque_baixo(self, limite: int) -> list[dict]:
+        return sorted(({k: l[k] for k in ("id", "titulo", "autor", "estoque", "preco")}
+                       for l in self.dados["livros"] if l["estoque"] <= limite), key=lambda l: l["estoque"])
+
+    def cadastrar_livro(self, titulo: str, autor: str, genero: str, preco: float, estoque: int,
+                        sinopse: str) -> dict:
+        if preco <= 0 or estoque < 0:
+            raise ErroLoja("Preço deve ser positivo e estoque não pode ser negativo.")
+        with self._trava:
+            if any(l["titulo"].lower() == titulo.lower() and l["autor"].lower() == autor.lower()
+                   for l in self.dados["livros"]):
+                raise ErroLoja("Esse livro já está no catálogo; use ajustar_estoque.")
+            numero = max((int(l["id"][1:]) for l in self.dados["livros"]), default=0) + 1
+            livro = {"id": f"L{numero:03d}", "titulo": titulo, "autor": autor, "genero": genero,
+                     "preco": round(preco, 2), "estoque": estoque, "sinopse": sinopse}
+            self.dados["livros"].append(livro)
+            self.salvar()
+        return livro
+
+    def ajustar_estoque(self, livro_id: str, estoque: int, preco: float | None) -> dict:
+        if estoque < 0:
+            raise ErroLoja("Estoque não pode ser negativo.")
+        with self._trava:
+            livro = self._livro(livro_id)
+            anterior = {"estoque": livro["estoque"], "preco": livro["preco"]}
+            livro["estoque"] = estoque
+            if preco is not None:
+                livro["preco"] = round(preco, 2)
+            self.salvar()
+        return {"ok": True, "livro_id": livro_id, "antes": anterior,
+                "agora": {"estoque": livro["estoque"], "preco": livro["preco"]}}
+
+    def resumo_operacao(self, dias: int) -> dict:
+        """Pedidos do WhatsApp, cobranças, agendamentos e atendimentos dos últimos dias."""
+        desde = (self.relogio() - timedelta(days=dias)).isoformat(timespec="minutes")
+        hoje = self.relogio().date().isoformat()
+        pedidos = [p for p in self.dados["pedidos"] if p["criado_em"] >= desde[:16]]
+        pagos = [p for p in pedidos if p["status"] in ("pago", "enviado", "entregue")]
+        return {
+            "periodo_dias": dias,
+            "pedidos_novos": len(pedidos),
+            "pedidos_pagos": len(pagos),
+            "valor_pago": round(sum(p["total"] for p in pagos), 2),
+            "aguardando_pagamento": [{"id": p["id"], "total": p["total"], "vencimento": p["vencimento"]}
+                                     for p in self.dados["pedidos"] if p["status"] == "aguardando_pagamento"],
+            "pagamentos_para_conferir": [p["id"] for p in self.dados["pedidos"]
+                                         if p["status"] == "pagamento_em_verificacao"],
+            "agendamentos_de_hoje_em_diante": [a for a in self.dados["agendamentos"]
+                                               if a["status"] == "confirmado" and a["data_hora"][:10] >= hoje],
+            "chamados_abertos": [c for c in self.dados["chamados"] if c["status"] == "aberto"],
+            "pedidos_de_atendente": [h for h in self.dados["fila_humana"] if h["em"] >= desde[:16]],
+            "avaliacoes_recentes": [a for a in self.dados["avaliacoes"] if a["em"] >= desde[:16]],
+        }

@@ -125,3 +125,29 @@ def test_textos_longos_sao_divididos():
     texto = "\n".join(["a" * 1000] * 10)
     partes = _partes(texto)
     assert all(len(p) <= LIMITE_TEXTO for p in partes) and "\n".join(partes) == texto
+
+
+class AssistenteFalso:
+    def __init__(self):
+        self.recebidas = []
+
+    def responder(self, conversa, texto, pessoa):
+        self.recebidas.append((conversa, texto, pessoa))
+        return ["Ontem: 12 documentos no ERP19."]
+
+
+def test_numero_da_equipe_vai_para_o_assistente_interno(tmp_path, canal, meta):
+    loja = Loja(tmp_path / "loja.json", relogio=lambda: AGORA)
+    falso = ClaudeFalso([_msg(_texto("Olá! Procura algum livro?"))])
+    assistente = AssistenteFalso()
+    app = criar_app(Motor(loja, tmp_path / "c", cliente=falso), canal, VERIFICA, SEGREDO,
+                    assistente, {"244923000001": "Rogério"})
+    cliente = TestClient(app)
+    for remetente, mid in (("244923000001", "wamid.E"), ("5511988887777", "wamid.F")):
+        msg = {"from": remetente, "id": mid, "type": "text", "text": {"body": "vendas de ontem?"}}
+        corpo = json.dumps(_webhook(msg)).encode()
+        cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    assert assistente.recebidas == [("whatsapp-244923000001", "vendas de ontem?", "Rogério")]
+    respostas = {e["to"]: e["text"]["body"] for e in meta.envios if e.get("type") == "text"}
+    assert respostas == {"244923000001": "Ontem: 12 documentos no ERP19.",
+                         "5511988887777": "Olá! Procura algum livro?"}
