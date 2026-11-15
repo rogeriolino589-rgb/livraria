@@ -256,3 +256,19 @@ def test_faturas_em_planilha(ctx):
 
     linhas = list(load_workbook(r["arquivo"]).active.iter_rows(values_only=True))
     assert linhas[0][:3] == ("id", "tipo", "emitente") and linhas[1][2] == "Editora Luz"
+
+
+def test_metodos_de_marketing_e_calendario(ctx):
+    r = json.loads(executar(ctx, "marketing_metodo", {"metodo": "calendario_30_dias"}))
+    assert "descoberta" in r["instrucoes"] and "nunca invente" in r["regras"]
+    itens = [{"data": "2026-11-17", "rede": "instagram", "formato": "carrossel", "funcao": "educacao",
+              "tema": "Como escolher a sua Bíblia", "gancho": "Qual Bíblia comprar primeiro?", "texto": "...",
+              "cta": "Guarde este post", "produto": None},
+             {"data": "2026-11-16", "rede": "tiktok", "formato": "vídeo", "funcao": "descoberta",
+              "tema": "Versículo da semana", "gancho": "Um versículo para segunda", "texto": "...",
+              "cta": "Comente AMÉM", "produto": None}]
+    r = json.loads(executar(ctx, "conteudo_calendario_salvar", {"titulo": "Novembro CPAD", "itens": itens}))
+    from openpyxl import load_workbook
+
+    linhas = list(load_workbook(r["arquivo"]).active.iter_rows(values_only=True))
+    assert linhas[0][0] == "Data" and linhas[1][1] == "tiktok" and len(linhas) == 3

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ..ferramentas import _ferramenta
 from ..loja import ErroLoja, Loja
-from . import documentos, superapp
+from . import documentos, marketing, superapp
 from .base import AGRUPAMENTOS, ERPS, Base, ErroDados
 from .email_imap import CaixaIMAP
 
@@ -90,10 +90,29 @@ FERRAMENTAS = [
     # redes sociais
     _ferramenta("post_salvar",
                 "Guarda um rascunho de post para a equipe revisar e publicar. Nada é publicado automaticamente.",
-                {"rede": {"type": "string", "enum": ["instagram", "facebook", "tiktok", "linkedin",
+                {"rede": {"type": "string", "enum": ["instagram", "facebook", "tiktok", "threads", "linkedin",
                                                      "whatsapp_status", "outra"]},
                  "texto": T, "sugestao_imagem": T_NULO}),
     _ferramenta("posts_listar", "Lista os últimos rascunhos de posts.", {}),
+    _ferramenta("marketing_metodo",
+                "Carrega o método de trabalho para uma tarefa de marketing (estratégia, pesquisa de público e "
+                "concorrentes, oferta, calendário de 30 dias, campanha, funil, análise de resultados, auditoria do "
+                "Instagram, ideias, ganchos, roteiro de Reels/TikTok, prova social, carrossel, reaproveitar, CTAs). "
+                "Use antes de começar a tarefa e siga as instruções e regras devolvidas.",
+                {"metodo": {"type": "string", "enum": list(marketing.METODOS)}}),
+    _ferramenta("conteudo_calendario_salvar",
+                "Salva um calendário de conteúdo numa planilha Excel para a equipe revisar.",
+                {"titulo": T, "itens": {"type": "array", "items": {
+                    "type": "object",
+                    "properties": {"data": {**T, "description": "AAAA-MM-DD"},
+                                   "rede": {"type": "string", "enum": ["instagram", "facebook", "tiktok", "threads",
+                                                                      "whatsapp_status", "outra"]},
+                                   "formato": T,
+                                   "funcao": {"type": "string", "enum": ["descoberta", "educacao", "autoridade",
+                                                                        "conversao"]},
+                                   "tema": T, "gancho": T, "texto": T, "cta": T, "produto": T_NULO},
+                    "required": ["data", "rede", "formato", "funcao", "tema", "gancho", "texto", "cta", "produto"],
+                    "additionalProperties": False}}}),
 ]
 
 # Pesquisa na web feita pelos servidores da Anthropic.
@@ -181,6 +200,12 @@ def executar(ctx: Contexto, nome: str, e: dict) -> str:
         r = ctx.base.salvar_post(e["rede"], e["texto"], e.get("sugestao_imagem"))
     elif nome == "posts_listar":
         r = ctx.base.listar_posts()
+    elif nome == "marketing_metodo":
+        r = marketing.metodo(e["metodo"])
+    elif nome == "conteudo_calendario_salvar":
+        if not e["itens"]:
+            raise ErroDados("O calendário está vazio.")
+        r = marketing.salvar_calendario(ctx.pasta_exportacao, e["titulo"], e["itens"])
     else:
         raise ErroDados(f"Ferramenta desconhecida: {nome}")
     return json.dumps(r, ensure_ascii=False, default=str)
