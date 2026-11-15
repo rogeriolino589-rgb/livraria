@@ -1,0 +1,15 @@
+[project]
+name = "livraria-agentes"
+version = "0.1.0"
+description = "Agentes de IA (Claude) para atendimento da livraria por WhatsApp"
+requires-python = ">=3.10"
+dependencies = ["anthropic>=2.8.0", "tzdata"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools]
+packages = ["livraria_agentes"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
