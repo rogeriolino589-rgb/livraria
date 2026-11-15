@@ -53,6 +53,9 @@ class Loja:
             self.arquivo.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(SEMENTE, self.arquivo)
         self.dados = json.loads(self.arquivo.read_text(encoding="utf-8"))
+        for chave in ("tarefas", "pedidos_oracao"):
+            self.dados.setdefault(chave, [])
+        self.dados.setdefault("contatos", {})
 
     # ---------------------------------------------------------------- base
     def salvar(self) -> None:
@@ -147,6 +150,9 @@ class Loja:
                 "pos_venda_enviado": False,
             }
             self.dados["pedidos"].append(pedido)
+            self._nova_tarefa(f"Separar o pedido {pedido['id']} ({len(linhas)} item(ns), "
+                              f"{'entrega ao domicílio' if entrega == 'envio' else 'levantamento na loja'}) "
+                              "e aguardar a confirmação do pagamento", None, None, "pedido")
             self.salvar()
         return {**pedido, "link_pagamento": self._link(pedido)}
 
@@ -356,7 +362,8 @@ class Loja:
         desde = (self.relogio() - timedelta(days=dias)).isoformat(timespec="minutes")
         hoje = self.relogio().date().isoformat()
         pedidos = [p for p in self.dados["pedidos"] if p["criado_em"] >= desde[:16]]
-        pagos = [p for p in pedidos if p["status"] in ("pago", "enviado", "entregue")]
+        pagos = [p for p in self.dados["pedidos"]
+                 if (p.get("pagamento") or {}).get("confirmado_em", "") >= desde[:16]]
         return {
             "periodo_dias": dias,
             "pedidos_novos": len(pedidos),
@@ -371,4 +378,100 @@ class Loja:
             "chamados_abertos": [c for c in self.dados["chamados"] if c["status"] == "aberto"],
             "pedidos_de_atendente": [h for h in self.dados["fila_humana"] if h["em"] >= desde[:16]],
             "avaliacoes_recentes": [a for a in self.dados["avaliacoes"] if a["em"] >= desde[:16]],
+            "contactos_novos": sum(1 for em in self.dados["contatos"].values() if em >= desde[:16]),
+            "pedidos_de_oracao": [o for o in self.dados["pedidos_oracao"] if o["em"] >= desde[:16]],
+            "tarefas_pendentes": self.listar_tarefas(None, True),
         }
+
+    # --------------------------------------------------- contactos e pedidos de oração
+    def registrar_contato(self, telefone: str) -> bool:
+        """Marca o primeiro contacto do número. Devolve True se é um contacto novo."""
+        with self._trava:
+            if telefone in self.dados["contatos"]:
+                return False
+            self.dados["contatos"][telefone] = self.relogio().isoformat(timespec="minutes")
+            self.salvar()
+        return True
+
+    def registrar_pedido_oracao(self, telefone: str, pedido: str) -> dict:
+        with self._trava:
+            self.dados["pedidos_oracao"].append({"telefone": telefone, "pedido": pedido,
+                                                 "em": self.relogio().isoformat(timespec="minutes")})
+            self.salvar()
+        return {"ok": True, "aviso": "Pedido entregue à equipa, que vai orar por esta intenção."}
+
+    # ---------------------------------------------------------------- tarefas
+    def _nova_tarefa(self, descricao: str, responsavel: str | None, prazo: str | None, origem: str) -> dict:
+        tarefa = {"id": _novo_id("TAR"), "descricao": descricao, "responsavel": responsavel, "prazo": prazo,
+                  "origem": origem, "status": "pendente", "criada_em": self.relogio().isoformat(timespec="minutes"),
+                  "concluida_em": None}
+        self.dados["tarefas"].append(tarefa)
+        return tarefa
+
+    def criar_tarefa(self, descricao: str, responsavel: str | None, prazo: str | None) -> dict:
+        if prazo:
+            date.fromisoformat(prazo)
+        with self._trava:
+            tarefa = self._nova_tarefa(descricao.strip(), responsavel, prazo, "equipa")
+            self.salvar()
+        return tarefa
+
+    def listar_tarefas(self, responsavel: str | None, so_pendentes: bool) -> list[dict]:
+        return [t for t in self.dados["tarefas"]
+                if (not so_pendentes or t["status"] == "pendente")
+                and (responsavel is None or (t["responsavel"] or "").lower() == responsavel.lower())]
+
+    def concluir_tarefa(self, tarefa_id: str) -> dict:
+        with self._trava:
+            for t in self.dados["tarefas"]:
+                if t["id"] == tarefa_id:
+                    t["status"] = "concluida"
+                    t["concluida_em"] = self.relogio().isoformat(timespec="minutes")
+                    self.salvar()
+                    return {"ok": True, "tarefa": t}
+        raise ErroLoja(f"Tarefa {tarefa_id} não existe.")
+
+    def atribuir_tarefa(self, tarefa_id: str, responsavel: str) -> dict:
+        with self._trava:
+            for t in self.dados["tarefas"]:
+                if t["id"] == tarefa_id:
+                    t["responsavel"] = responsavel
+                    self.salvar()
+                    return {"ok": True, "tarefa": t}
+        raise ErroLoja(f"Tarefa {tarefa_id} não existe.")
+
+    # ------------------------------------------------- pedidos (lado da equipa)
+    def _pedido_por_id(self, pedido_id: str) -> dict:
+        for p in self.dados["pedidos"]:
+            if p["id"] == pedido_id:
+                return p
+        raise ErroLoja(f"Pedido {pedido_id} não existe.")
+
+    def confirmar_pagamento(self, pedido_id: str, forma: str, referencia: str | None) -> dict:
+        """A equipa confirmou que o dinheiro entrou (M-Pesa, e-Mola, banco, cartão, numerário)."""
+        with self._trava:
+            p = self._pedido_por_id(pedido_id)
+            if p["status"] not in ("aguardando_pagamento", "pagamento_em_verificacao"):
+                raise ErroLoja(f"O pedido está '{p['status']}'.")
+            p["status"] = "pago"
+            p["pagamento"] = {"forma": forma, "referencia": referencia,
+                              "confirmado_em": self.relogio().isoformat(timespec="minutes")}
+            self._nova_tarefa(f"Pedido {pedido_id} pago: embalar e "
+                              f"{'enviar ao cliente' if p['entrega'] == 'envio' else 'deixar pronto para levantamento'}",
+                              None, None, "pedido")
+            self.salvar()
+        return {"ok": True, "pedido": p}
+
+    def atualizar_estado_pedido(self, pedido_id: str, estado: str) -> dict:
+        ordem = ["pago", "enviado", "entregue"]
+        with self._trava:
+            p = self._pedido_por_id(pedido_id)
+            if estado not in ("enviado", "entregue") or p["status"] not in ordem or \
+                    ordem.index(estado) <= ordem.index(p["status"]):
+                raise ErroLoja(f"Não dá para passar de '{p['status']}' para '{estado}'.")
+            p["status"] = estado
+            if estado == "entregue":
+                p["entregue_em"] = self.relogio().isoformat(timespec="minutes")
+            self.salvar()
+        return {"ok": True, "pedido_id": pedido_id, "status": estado}
+

@@ -74,6 +74,9 @@ FERRAMENTAS = [
                 {"assunto": TEXTO, "descricao": TEXTO, "pedido_id": TEXTO_OU_NULO}),
     _ferramenta("registrar_avaliacao", "Registra a nota (1 a 5) e o comentário do cliente sobre um pedido.",
                 {"pedido_id": TEXTO, "nota": {"type": "integer"}, "comentario": TEXTO_OU_NULO}),
+    _ferramenta("registrar_pedido_oracao",
+                "Entrega à equipa um pedido de oração ou necessidade partilhada pelo cliente. Não é para vendas.",
+                {"pedido": {**TEXTO, "description": "O pedido, nas palavras do cliente."}}),
     _ferramenta("transferir_agente",
                 "Passa a conversa para outro agente da livraria quando o assunto é da área dele.",
                 {"agente": {"type": "string", "enum": AGENTES_VALIDOS},
@@ -120,6 +123,8 @@ def executar(loja: Loja, telefone: str, nome: str, entrada: dict) -> str:
         r = loja.abrir_chamado(telefone, e["assunto"], e["descricao"], e.get("pedido_id"))
     elif nome == "registrar_avaliacao":
         r = loja.registrar_avaliacao(telefone, e["pedido_id"], int(e["nota"]), e.get("comentario"))
+    elif nome == "registrar_pedido_oracao":
+        r = loja.registrar_pedido_oracao(telefone, e["pedido"])
     elif nome == "chamar_humano":
         r = loja.pedir_humano(telefone, e["motivo"])
     else:

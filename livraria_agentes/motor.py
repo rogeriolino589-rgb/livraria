@@ -109,6 +109,8 @@ class Motor:
             self.salvar(estado)
             return Resposta([], estado["agente"], True)
 
+        if not estado["mensagens"]:
+            self.loja.registrar_contato(telefone)
         msgs: list[dict] = estado["mensagens"]
         avisos = self._retirar_sistema_na_cauda(msgs)
         if not msgs:

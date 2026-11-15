@@ -58,6 +58,11 @@ CREATE TABLE IF NOT EXISTS posts (
 CREATE TABLE IF NOT EXISTS documentos (
     id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT UNIQUE, email_uid TEXT, remetente TEXT, assunto TEXT,
     data_email TEXT, nome TEXT, tipo TEXT, tamanho_kb REAL, caminho TEXT, copiado_em TEXT);
+CREATE TABLE IF NOT EXISTS movimentos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL, tipo TEXT NOT NULL, valor REAL NOT NULL,
+    categoria TEXT NOT NULL, descricao TEXT, forma_pagamento TEXT, referencia TEXT, origem TEXT, registrado_por TEXT,
+    registrado_em TEXT);
+CREATE INDEX IF NOT EXISTS movimentos_data ON movimentos (data);
 CREATE TABLE IF NOT EXISTS exportacoes (
     id INTEGER PRIMARY KEY AUTOINCREMENT, inicio TEXT, fim TEXT, arquivo TEXT, enviado INTEGER, em TEXT);
 """
@@ -416,4 +421,40 @@ class Base:
             sql += " AND data_email >= ?"
             args.append(desde)
         return self._q(sql + " ORDER BY data_email DESC LIMIT 100", tuple(args))
+
+    # -------------------------------------------------------------- financeiro
+    def registrar_movimento(self, m: dict) -> dict:
+        if m["tipo"] not in ("entrada", "saida"):
+            raise ErroDados("O tipo é 'entrada' ou 'saida'.")
+        if m["valor"] is None or float(m["valor"]) <= 0:
+            raise ErroDados("O valor tem de ser positivo.")
+        data_ = date.fromisoformat(m["data"]).isoformat()
+        with self.db:
+            cur = self.db.execute(
+                "INSERT INTO movimentos (data, tipo, valor, categoria, descricao, forma_pagamento, referencia, origem, "
+                "registrado_por, registrado_em) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (data_, m["tipo"], round(float(m["valor"]), 2), m["categoria"], m.get("descricao"),
+                 m.get("forma_pagamento"), m.get("referencia"), m.get("origem", "equipa"), m.get("registrado_por"),
+                 datetime.now().isoformat(timespec="minutes")))
+        return {"ok": True, "movimento_id": cur.lastrowid}
+
+    def resumo_financeiro(self, inicio: str, fim: str) -> dict:
+        totais = {r["tipo"]: r for r in self._q(
+            "SELECT tipo, COUNT(*) AS movimentos, ROUND(SUM(valor), 2) AS total FROM movimentos "
+            "WHERE data BETWEEN ? AND ? GROUP BY tipo", (inicio, fim))}
+        entradas = (totais.get("entrada") or {}).get("total") or 0.0
+        saidas = (totais.get("saida") or {}).get("total") or 0.0
+        return {
+            "periodo": [inicio, fim],
+            "entradas": entradas, "saidas": saidas, "saldo": round(entradas - saidas, 2),
+            "por_categoria": self._q(
+                "SELECT tipo, categoria, COUNT(*) AS movimentos, ROUND(SUM(valor), 2) AS total FROM movimentos "
+                "WHERE data BETWEEN ? AND ? GROUP BY tipo, categoria ORDER BY tipo, total DESC", (inicio, fim)),
+            "por_forma_pagamento": self._q(
+                "SELECT tipo, COALESCE(forma_pagamento, '(não informada)') AS forma, ROUND(SUM(valor), 2) AS total "
+                "FROM movimentos WHERE data BETWEEN ? AND ? GROUP BY tipo, forma ORDER BY tipo, total DESC",
+                (inicio, fim)),
+            "ultimos": self._q("SELECT * FROM movimentos WHERE data BETWEEN ? AND ? ORDER BY data DESC, id DESC "
+                               "LIMIT 30", (inicio, fim)),
+        }
 

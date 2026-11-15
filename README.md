@@ -1,4 +1,4 @@
-# Livraria: agentes de IA para WhatsApp
+# CPAD Moçambique: robô de atendimento e operação
 
 Agentes de atendimento feitos com o Claude (modelo Claude Opus 5.5) para uma livraria em Moçambique
 (valores em meticais, hora de Maputo, números +258, pagamentos por M-Pesa, e-Mola, banco ou cartão). Por enquanto a
@@ -130,6 +130,40 @@ reconhecidas, copie `config/erps.exemplo.json` para `config/erps.json` e escreva
 | `SUPERAPP_URL`, `SUPERAPP_TOKEN` | Endereço e token do superapp (opcional) |
 | `ARQUIVO_DOCUMENTOS` | Pasta onde os documentos copiados dos e-mails são guardados |
 | `LIVRARIA_FUSO` | Fuso horário, ex.: `Africa/Maputo` (padrão) |
+
+## O dia a dia da loja (os 7 trabalhos)
+
+| Trabalho | Quem faz |
+|---|---|
+| Stock | Assistente interno: stock baixo, esgotados, cadastro e ajuste de livros |
+| Vendas | Agentes do WhatsApp vendem e cobram; a equipa confirma o pagamento (`pedido_confirmar_pagamento`) |
+| Redes sociais | Rascunhos e calendário para Instagram, Facebook, TikTok e Threads (publicação após ligar as contas) |
+| WhatsApp 24h | Agentes de atendimento, vendas, marcações, cobrança, suporte e pedidos de oração |
+| Equipa | Tarefas com responsável e prazo; cada pedido novo gera a tarefa de separar e, depois de pago, a de embalar |
+| Financeiro | Entradas e saídas por categoria e forma de pagamento (M-Pesa, e-Mola, banco, cartão, numerário) |
+| Relatórios | 7h30: tarefas para cada pessoa + resumo; 18h: relatório do dia para o responsável |
+
+Pedidos de oração recebidos no WhatsApp são acolhidos sem oferta de venda e entram no relatório da noite.
+
+### Agendar as rotinas
+
+Linux/Mac (`crontab -e`, hora de Maputo):
+
+```
+30 7 * * *  cd /caminho/livraria && python -m livraria_agentes.interno.rotinas manha --whatsapp
+0 18 * * *  cd /caminho/livraria && python -m livraria_agentes.interno.rotinas noite --whatsapp
+0 9 * * *   cd /caminho/livraria && python -m livraria_agentes.lembretes --whatsapp
+```
+
+Windows: Agendador de Tarefas → Criar Tarefa Básica → Diariamente às 7:30 → Iniciar um programa →
+`python` com argumentos `-m livraria_agentes.interno.rotinas manha --whatsapp` e "Iniciar em" a pasta do projeto.
+Repita para as 18:00 com `noite`.
+
+| Variável | O que é |
+|---|---|
+| `LOJA_NOME` | Nome da loja (padrão: CPAD Moçambique) |
+| `LOJA_ENDERECO`, `LOJA_CONTACTOS` | Endereço e contactos oficiais, usados pelos agentes |
+| `DONO_WHATSAPP` | Quem recebe o resumo da manhã e o relatório das 18h |
 
 ## Testes
 
