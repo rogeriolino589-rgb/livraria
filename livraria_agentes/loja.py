@@ -16,7 +16,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-FUSO = ZoneInfo(os.environ.get("LIVRARIA_FUSO", "America/Sao_Paulo"))
+FUSO = ZoneInfo(os.environ.get("LIVRARIA_FUSO", "Africa/Maputo"))
 SEMENTE = Path(__file__).resolve().parent.parent / "dados" / "loja_inicial.json"
 
 # Horário de funcionamento para agendamentos: segunda (0) a sábado (5).
@@ -29,7 +29,7 @@ TIPOS_AGENDAMENTO = {
 }
 VAGAS_POR_HORARIO = 2
 PRAZO_PAGAMENTO_DIAS = 2
-FRETE_FIXO = 15.0
+FRETE_FIXO = 250.0  # meticais
 
 
 class ErroLoja(Exception):
@@ -168,7 +168,7 @@ class Loja:
 
     # ------------------------------------------------------------- cobrança
     def _link(self, pedido: dict) -> str:
-        # Simulado: troque pelo link do seu meio de pagamento (Pix, Mercado Pago...).
+        # Simulado: troque pelo link do seu meio de pagamento (M-Pesa, e-Mola, banco, cartão).
         return f"https://pagar.exemplo.com/{pedido['id']}"
 
     def consultar_pendencias(self, telefone: str) -> list[dict]:

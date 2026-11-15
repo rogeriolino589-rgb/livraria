@@ -8,7 +8,7 @@ Variáveis de ambiente:
     WHATSAPP_PHONE_NUMBER_ID  id do número (WhatsApp > Configuração da API, no app da Meta)
     WHATSAPP_VERIFY_TOKEN     uma senha que você inventa e repete na configuração do webhook na Meta
     WHATSAPP_APP_SECRET       chave secreta do app (Configurações do app > Básico)
-    EQUIPE_WHATSAPP           números da equipe que falam com o assistente interno, ex.: "244923000001:Rogério"
+    EQUIPE_WHATSAPP           números da equipe que falam com o assistente interno, ex.: "258840000010:Rogério"
     PORT                      porta HTTP (padrão 8000)
 
 Na Meta, configure a URL de callback como https://SEU-DOMINIO/webhook e assine o campo "messages".
@@ -31,7 +31,7 @@ from .motor import Motor
 
 log = logging.getLogger(__name__)
 
-MSG_SO_TEXTO = ("Por enquanto eu só consigo ler mensagens de texto 🙂 "
+MSG_SO_TEXTO = ("Por enquanto só consigo ler mensagens de texto 🙂 "
                 "Pode escrever o que precisa?")
 
 

@@ -47,7 +47,7 @@ def canal(meta):
 def _webhook(*mensagens):
     return {"object": "whatsapp_business_account", "entry": [{"id": "WABA", "changes": [{"field": "messages",
             "value": {"messaging_product": "whatsapp", "metadata": {"phone_number_id": "123"},
-                      "contacts": [{"wa_id": "5511988887777", "profile": {"name": "Carla"}}],
+                      "contacts": [{"wa_id": "258851234567", "profile": {"name": "Carla"}}],
                       "messages": list(mensagens)}}]}]}
 
 
@@ -75,13 +75,13 @@ def test_verificacao_do_webhook(tmp_path, canal):
 
 def test_mensagem_de_texto_recebe_resposta(tmp_path, canal, meta):
     cliente, falso = _app(tmp_path, canal, [_msg(_texto("Oi, Carla! Que tipo de livro você procura?"))])
-    msg = {"from": "5511988887777", "id": "wamid.A", "timestamp": "1", "type": "text", "text": {"body": "oi"}}
+    msg = {"from": "258851234567", "id": "wamid.A", "timestamp": "1", "type": "text", "text": {"body": "oi"}}
     corpo = json.dumps(_webhook(msg)).encode()
 
     r = cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
     assert r.status_code == 200
     assert meta.envios[0] == {"messaging_product": "whatsapp", "status": "read", "message_id": "wamid.A"}
-    assert meta.envios[1]["to"] == "5511988887777"
+    assert meta.envios[1]["to"] == "258851234567"
     assert meta.envios[1]["text"]["body"] == "Oi, Carla! Que tipo de livro você procura?"
     assert falso.chamadas[0][0] == {"role": "user", "content": "oi"}
 
@@ -100,7 +100,7 @@ def test_assinatura_invalida_e_recusada(tmp_path, canal, meta):
 
 def test_audio_recebe_aviso_sem_chamar_o_claude(tmp_path, canal, meta):
     cliente, falso = _app(tmp_path, canal, [])
-    msg = {"from": "5511988887777", "id": "wamid.B", "type": "audio", "audio": {"id": "m1"}}
+    msg = {"from": "258851234567", "id": "wamid.B", "type": "audio", "audio": {"id": "m1"}}
     corpo = json.dumps(_webhook(msg)).encode()
     cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
     assert "texto" in meta.envios[-1]["text"]["body"] and falso.chamadas == []
@@ -114,10 +114,10 @@ def test_extrair_texto_de_botoes():
 
 
 def test_envio_de_modelo(canal, meta):
-    params = ["Ana", "Loja", "PED-1", "79,90", "10/11", "https://x"]
-    canal.enviar_modelo("5511900000001", "lembrete_pagamento", params, preencher("lembrete_pagamento", params))
+    params = ["Ana", "Loja", "PED-1", "1.050,00", "10/11", "https://x"]
+    canal.enviar_modelo("258840000001", "lembrete_pagamento", params, preencher("lembrete_pagamento", params))
     tpl = meta.envios[0]["template"]
-    assert tpl["name"] == "lembrete_pagamento" and tpl["language"] == {"code": "pt_BR"}
+    assert tpl["name"] == "lembrete_pagamento" and tpl["language"] == {"code": "pt_PT"}
     assert [p["text"] for p in tpl["components"][0]["parameters"]] == params
 
 
@@ -141,13 +141,13 @@ def test_numero_da_equipe_vai_para_o_assistente_interno(tmp_path, canal, meta):
     falso = ClaudeFalso([_msg(_texto("Olá! Procura algum livro?"))])
     assistente = AssistenteFalso()
     app = criar_app(Motor(loja, tmp_path / "c", cliente=falso), canal, VERIFICA, SEGREDO,
-                    assistente, {"244923000001": "Rogério"})
+                    assistente, {"258840000010": "Rogério"})
     cliente = TestClient(app)
-    for remetente, mid in (("244923000001", "wamid.E"), ("5511988887777", "wamid.F")):
+    for remetente, mid in (("258840000010", "wamid.E"), ("258851234567", "wamid.F")):
         msg = {"from": remetente, "id": mid, "type": "text", "text": {"body": "vendas de ontem?"}}
         corpo = json.dumps(_webhook(msg)).encode()
         cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
-    assert assistente.recebidas == [("whatsapp-244923000001", "vendas de ontem?", "Rogério")]
+    assert assistente.recebidas == [("whatsapp-258840000010", "vendas de ontem?", "Rogério")]
     respostas = {e["to"]: e["text"]["body"] for e in meta.envios if e.get("type") == "text"}
-    assert respostas == {"244923000001": "Ontem: 12 documentos no ERP19.",
-                         "5511988887777": "Olá! Procura algum livro?"}
+    assert respostas == {"258840000010": "Ontem: 12 documentos no ERP19.",
+                         "258851234567": "Olá! Procura algum livro?"}

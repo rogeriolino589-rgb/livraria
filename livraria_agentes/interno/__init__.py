@@ -18,7 +18,7 @@ PASTA_DOCUMENTOS = Path(os.environ.get("ARQUIVO_DOCUMENTOS", PASTA_ESTADO / "doc
 
 
 def equipe_whatsapp() -> dict[str, str]:
-    """EQUIPE_WHATSAPP="244923000001:Rogério,244923000002:Ana" -> {telefone: nome}."""
+    """EQUIPE_WHATSAPP="258840000010:Rogério,258840000011:Ana" -> {telefone: nome}."""
     equipe = {}
     for item in os.environ.get("EQUIPE_WHATSAPP", "").split(","):
         telefone, _, nome = item.strip().partition(":")

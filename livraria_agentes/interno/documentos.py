@@ -84,7 +84,7 @@ def faturas_para_planilha(base: Base, arquivo: Path) -> dict:
     livro = Workbook()
     aba = livro.active
     aba.title = "Faturas"
-    colunas = ["id", "tipo", "emitente", "nif_emitente", "numero", "data_emissao", "vencimento", "valor", "moeda",
+    colunas = ["id", "tipo", "emitente", "nuit_emitente", "numero", "data_emissao", "vencimento", "valor", "moeda",
                "referencia", "erp", "documento_erp", "resumo", "email_uid"]
     aba.append(colunas)
     for f in faturas:

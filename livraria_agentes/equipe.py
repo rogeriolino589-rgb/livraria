@@ -1,8 +1,8 @@
 """Comandos para a equipe humana.
 
     python -m livraria_agentes.equipe fila                       # quem pediu atendente
-    python -m livraria_agentes.equipe responder 5511... "texto"  # responde pelo WhatsApp
-    python -m livraria_agentes.equipe liberar 5511...            # devolve o cliente aos agentes
+    python -m livraria_agentes.equipe responder 25884... "texto"  # responde pelo WhatsApp
+    python -m livraria_agentes.equipe liberar 25884...           # devolve o cliente aos agentes
 """
 
 from __future__ import annotations

@@ -1,6 +1,7 @@
 # Livraria: agentes de IA para WhatsApp
 
-Agentes de atendimento feitos com o Claude (modelo Claude Opus 5.5) para uma livraria. Por enquanto a
+Agentes de atendimento feitos com o Claude (modelo Claude Opus 5.5) para uma livraria em Moçambique
+(valores em meticais, hora de Maputo, números +258, pagamentos por M-Pesa, e-Mola, banco ou cartão). Por enquanto a
 conversa é simulada no terminal; a ligação com o WhatsApp vem depois.
 
 | Agente | O que faz |
@@ -18,12 +19,12 @@ humano. Cada cliente só enxerga os próprios pedidos e agendamentos.
 ```bash
 pip install -e .
 export ANTHROPIC_API_KEY=sua-chave        # crie em https://platform.claude.com
-python -m livraria_agentes.chat --telefone 5511900000001
+python -m livraria_agentes.chat --telefone 258840000001
 ```
 
 Comandos no chat: `/agente` (mostra o agente ativo), `/reiniciar`, `/sair`.
 
-Clientes de exemplo: `5511900000001` (Ana, com um pedido vencido) e `5511900000002` (Bruno, com um
+Clientes de exemplo: `258840000001` (Ana, com um pedido vencido) e `258840000002` (Bruno, com um
 pedido entregue). Qualquer outro número é um cliente novo.
 
 ### Mensagens automáticas (cobrança e pós-venda)
@@ -78,7 +79,7 @@ Em **WhatsApp > Configuração**, coloque a URL de callback `https://SEU-ENDEREC
 `WHATSAPP_VERIFY_TOKEN`, e assine o campo **messages**. Mande "oi" do seu celular para o número de teste.
 
 ### 4. Modelos de mensagem (para os lembretes)
-Em **WhatsApp Manager > Modelos de mensagem**, crie em português (pt_BR), categoria **Utilidade**, os
+Em **WhatsApp Manager > Modelos de mensagem**, crie em português (pt_PT), categoria **Utilidade**, os
 modelos `lembrete_pagamento` e `pos_venda` com os textos de `MODELOS` em `livraria_agentes/lembretes.py`.
 Depois de aprovados: `python -m livraria_agentes.lembretes --whatsapp` (uma vez por dia).
 
@@ -87,8 +88,8 @@ Quando um agente chama um atendente, o robô para de responder aquele cliente.
 
 ```bash
 python -m livraria_agentes.equipe fila                         # quem está esperando
-python -m livraria_agentes.equipe responder 5511... "Oi! Aqui é a Júlia, da livraria."
-python -m livraria_agentes.equipe liberar 5511...              # o robô volta a atender
+python -m livraria_agentes.equipe responder 25884... "Oi! Aqui é a Júlia, da livraria."
+python -m livraria_agentes.equipe liberar 25884...              # o robô volta a atender
 ```
 
 ## Assistente interno (equipe da livraria)
@@ -125,10 +126,10 @@ reconhecidas, copie `config/erps.exemplo.json` para `config/erps.json` e escreva
 | Variável | O que é |
 |---|---|
 | `IMAP_HOST`, `IMAP_PORTA`, `IMAP_USUARIO`, `IMAP_SENHA`, `IMAP_PASTA` | Caixa de e-mail (porta 993, pasta INBOX por padrão) |
-| `EQUIPE_WHATSAPP` | Números da equipe, ex.: `244923000001:Rogério,244923000002:Ana` |
+| `EQUIPE_WHATSAPP` | Números da equipe, ex.: `258840000010:Rogério,258840000011:Ana` |
 | `SUPERAPP_URL`, `SUPERAPP_TOKEN` | Endereço e token do superapp (opcional) |
 | `ARQUIVO_DOCUMENTOS` | Pasta onde os documentos copiados dos e-mails são guardados |
-| `LIVRARIA_FUSO` | Fuso horário, ex.: `Africa/Luanda` (padrão `America/Sao_Paulo`) |
+| `LIVRARIA_FUSO` | Fuso horário, ex.: `Africa/Maputo` (padrão) |
 
 ## Testes
 

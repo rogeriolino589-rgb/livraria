@@ -58,7 +58,7 @@ class CanalWhatsApp:
     """Envia mensagens pela WhatsApp Cloud API (graph.facebook.com)."""
 
     def __init__(self, token: str, phone_number_id: str, versao: str = "v23.0",
-                 idioma_modelos: str = "pt_BR", cliente_http: httpx.Client | None = None):
+                 idioma_modelos: str = "pt_PT", cliente_http: httpx.Client | None = None):
         self.url = f"https://graph.facebook.com/{versao}/{phone_number_id}/messages"
         self.idioma = idioma_modelos
         self.http = cliente_http or httpx.Client(timeout=20)

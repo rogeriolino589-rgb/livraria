@@ -46,7 +46,7 @@ FERRAMENTAS = [
                 {"email_uid": T,
                  "tipo": {"type": "string", "enum": ["fatura_fornecedor", "fatura_cliente", "comprovante_pagamento",
                                                      "recibo", "nota_credito", "outro"]},
-                 "emitente": T, "nif_emitente": T_NULO, "numero": T, "data_emissao": {**T_NULO, "description": "AAAA-MM-DD"},
+                 "emitente": T, "nuit_emitente": T_NULO, "numero": T, "data_emissao": {**T_NULO, "description": "AAAA-MM-DD"},
                  "vencimento": {**T_NULO, "description": "AAAA-MM-DD"}, "valor": {"type": ["number", "null"]},
                  "moeda": T_NULO, "referencia": {**T_NULO, "description": "Nº de documento/encomenda citado."},
                  "resumo": T}),

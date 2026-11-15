@@ -29,8 +29,8 @@ BETA_FALLBACK = "server-side-fallback-2026-07-01"
 
 DIAS_SEMANA = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
 
-MSG_INSTABILIDADE = "Desculpe, tivemos uma instabilidade aqui. Pode mandar sua mensagem de novo em instantes? 🙏"
-MSG_RECUSA = "Desculpe, não consigo ajudar com isso por aqui. Posso te ajudar com livros, pedidos ou agendamentos?"
+MSG_INSTABILIDADE = "Desculpe, tivemos uma falha técnica. Pode enviar a sua mensagem de novo dentro de instantes? 🙏"
+MSG_RECUSA = "Desculpe, não consigo ajudar com isso por aqui. Posso ajudar com livros, pedidos ou marcações?"
 
 
 @dataclass
@@ -117,7 +117,7 @@ class Motor:
         if estado["contexto_em"] != momento.date().isoformat():
             nome = self.loja.nome_cliente(telefone) or "ainda não informado"
             dia = DIAS_SEMANA[momento.weekday()]
-            avisos.append(f"Contexto: agora é {dia}, {momento:%d/%m/%Y %H:%M} (horário de Brasília). "
+            avisos.append(f"Contexto: agora é {dia}, {momento:%d/%m/%Y %H:%M} (hora de Moçambique). "
                           f"Cliente: nome {nome}; WhatsApp {telefone}.")
             estado["contexto_em"] = momento.date().isoformat()
         avisos += estado["avisos_pendentes"]
@@ -199,7 +199,7 @@ class Motor:
                              f"Agente ativo agora: {novo_agente}. Motivo da transferência: {motivo} "
                              f"Continue o atendimento a partir daqui."})
         log.warning("Limite de passos atingido (%s)", telefone)
-        resposta.textos.append("Só um instante, vou verificar isso com a equipe.")
+        resposta.textos.append("Só um instante, vou verificar isso com a equipa.")
 
     def _executar(self, estado: dict, agente: str, nome: str, entrada: dict) -> tuple[str, bool]:
         """Devolve (conteúdo do resultado, se é erro)."""

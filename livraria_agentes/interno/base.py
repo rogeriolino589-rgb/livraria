@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS vendas_doc ON vendas (documento);
 CREATE TABLE IF NOT EXISTS importacoes (
     hash TEXT PRIMARY KEY, erp TEXT, arquivo TEXT, linhas INTEGER, inicio TEXT, fim TEXT, em TEXT);
 CREATE TABLE IF NOT EXISTS faturas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, email_uid TEXT, tipo TEXT, emitente TEXT, nif_emitente TEXT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, email_uid TEXT, tipo TEXT, emitente TEXT, nuit_emitente TEXT,
     numero TEXT, data_emissao TEXT, vencimento TEXT, valor REAL, moeda TEXT, referencia TEXT,
     resumo TEXT, documento_erp TEXT, erp TEXT, registrado_em TEXT,
     UNIQUE (email_uid, numero));
@@ -333,9 +333,9 @@ class Base:
     def registrar_fatura(self, f: dict) -> dict:
         with self.db:
             cur = self.db.execute(
-                "INSERT OR REPLACE INTO faturas (email_uid, tipo, emitente, nif_emitente, numero, data_emissao, "
+                "INSERT OR REPLACE INTO faturas (email_uid, tipo, emitente, nuit_emitente, numero, data_emissao, "
                 "vencimento, valor, moeda, referencia, resumo, registrado_em) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                (f["email_uid"], f["tipo"], f["emitente"], f.get("nif_emitente"), f["numero"],
+                (f["email_uid"], f["tipo"], f["emitente"], f.get("nuit_emitente"), f["numero"],
                  f.get("data_emissao"), f.get("vencimento"), f.get("valor"), f.get("moeda"), f.get("referencia"),
                  f.get("resumo"), datetime.now().isoformat(timespec="minutes")))
         return {"ok": True, "fatura_id": cur.lastrowid, "candidatos_erp": self.candidatos_fatura(cur.lastrowid)}
