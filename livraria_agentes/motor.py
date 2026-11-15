@@ -31,7 +31,6 @@ DIAS_SEMANA = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", 
 
 MSG_INSTABILIDADE = "Desculpe, tivemos uma instabilidade aqui. Pode mandar sua mensagem de novo em instantes? 🙏"
 MSG_RECUSA = "Desculpe, não consigo ajudar com isso por aqui. Posso te ajudar com livros, pedidos ou agendamentos?"
-MSG_HUMANO = "Sua mensagem foi encaminhada para a nossa equipe; um atendente responde em breve."
 
 
 @dataclass
@@ -84,12 +83,31 @@ class Motor:
             f"Agente ativo: {agente}.")
         self.salvar(estado)
 
+    def registrar_resposta_humana(self, telefone: str, texto: str) -> None:
+        estado = self.carregar(telefone)
+        estado["conversa_humana"] = estado.get("conversa_humana", []) + [f"Equipe: {texto}"]
+        self.salvar(estado)
+
+    def liberar_humano(self, telefone: str) -> None:
+        """A equipe terminou o atendimento: o robô volta a responder este cliente."""
+        estado = self.carregar(telefone)
+        estado["aguardando_humano"] = False
+        conversa = estado.pop("conversa_humana", [])
+        aviso = "Um atendente humano conversou com o cliente e devolveu o atendimento para os agentes."
+        if conversa:
+            aviso += " Conversa nesse período: " + " | ".join(f"«{m}»" for m in conversa)
+        estado["avisos_pendentes"].append(aviso)
+        self.salvar(estado)
+
     # ----------------------------------------------------------- conversa
     def responder(self, telefone: str, texto: str) -> Resposta:
         estado = self.carregar(telefone)
         if estado["aguardando_humano"]:
+            # Um atendente está cuidando da conversa: o robô fica quieto e só registra.
             self.loja.pedir_humano(telefone, f"Nova mensagem do cliente: {texto}")
-            return Resposta([MSG_HUMANO], estado["agente"], True)
+            estado["conversa_humana"] = estado.get("conversa_humana", []) + [f"Cliente: {texto}"]
+            self.salvar(estado)
+            return Resposta([], estado["agente"], True)
 
         msgs: list[dict] = estado["mensagens"]
         avisos = self._retirar_sistema_na_cauda(msgs)

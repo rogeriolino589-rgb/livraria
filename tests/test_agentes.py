@@ -171,8 +171,16 @@ def test_motor_humano_assume(loja, tmp_path):
     motor = Motor(loja, tmp_path / "c", cliente=falso)
     assert motor.responder(CLIENTE, "quero falar com uma pessoa").aguardando_humano
     r = motor.responder(CLIENTE, "oi?")
-    assert r.aguardando_humano and len(falso.chamadas) == 2  # o robô não responde mais
+    assert r.aguardando_humano and r.textos == [] and len(falso.chamadas) == 2  # o robô fica quieto
     assert len(loja.dados["fila_humana"]) == 2
+
+    # a equipe responde e devolve o cliente; o agente fica sabendo do que foi conversado
+    motor.registrar_resposta_humana(CLIENTE, "Resolvido, seu livro chega amanhã!")
+    motor.liberar_humano(CLIENTE)
+    falso.respostas.append(_msg(_texto("Posso ajudar em algo mais?")))
+    assert motor.responder(CLIENTE, "valeu!").textos == ["Posso ajudar em algo mais?"]
+    aviso = falso.chamadas[-1][-1]["content"]
+    assert "Cliente: oi?" in aviso and "Equipe: Resolvido" in aviso
 
 
 def test_lembretes_e_resposta_do_cliente(loja, tmp_path, capsys):

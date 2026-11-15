@@ -43,11 +43,53 @@ dia (por exemplo com `cron`).
 - **Link de pagamento:** `Loja._link` em `livraria_agentes/loja.py` (hoje é um link de exemplo)
 - **Esforço do modelo:** variável `LIVRARIA_ESFORCO` (`low`, `medium` ou `high`; padrão `medium`)
 
-## Ligar no WhatsApp (próximo passo)
+## Ligar no WhatsApp (API oficial da Meta)
 
-Use a API oficial do WhatsApp Business (Cloud API da Meta): um servidor recebe as mensagens (webhook),
-chama `Motor.responder(telefone, texto)` e envia as respostas. Ferramentas que conectam o WhatsApp por
-QR Code (WhatsApp Web) vão contra os termos do WhatsApp e podem fazer o número ser banido.
+O servidor `livraria_agentes/servidor.py` recebe as mensagens do WhatsApp (webhook), passa para os
+agentes e envia as respostas. Ferramentas que conectam o WhatsApp por QR Code (WhatsApp Web) vão contra
+os termos do WhatsApp e podem fazer o número ser banido; aqui usamos só a API oficial.
+
+### 1. Na Meta
+1. Em developers.facebook.com, crie um app do tipo **Empresa** e adicione o produto **WhatsApp**.
+2. Em **WhatsApp > Configuração da API**, anote o **Phone number ID** e o **token** (o temporário dura
+   24h; para produção, gere um permanente em Business Manager > Usuários do sistema).
+3. Cadastre seu celular como destinatário de teste.
+4. Em **Configurações do app > Básico**, anote a **Chave secreta do app**.
+
+### 2. Suba o servidor
+Ele precisa de um endereço HTTPS público. Qualquer serviço que rode Docker serve (Render, Railway, Fly.io,
+uma VPS). Monte um **disco persistente** em `/dados`, senão pedidos e conversas somem a cada deploy.
+
+Variáveis de ambiente:
+
+| Variável | O que é |
+|---|---|
+| `ANTHROPIC_API_KEY` | Chave da API do Claude |
+| `WHATSAPP_TOKEN` | Token de acesso da Meta |
+| `WHATSAPP_PHONE_NUMBER_ID` | Id do número do WhatsApp |
+| `WHATSAPP_VERIFY_TOKEN` | Uma senha que você inventa (usada no passo 3) |
+| `WHATSAPP_APP_SECRET` | Chave secreta do app (valida que as mensagens vêm mesmo da Meta) |
+
+Para testar no seu computador: `python -m livraria_agentes.servidor` e exponha a porta 8000 com um túnel
+HTTPS (por exemplo `cloudflared tunnel --url http://localhost:8000`).
+
+### 3. Ligue o webhook
+Em **WhatsApp > Configuração**, coloque a URL de callback `https://SEU-ENDERECO/webhook`, o mesmo
+`WHATSAPP_VERIFY_TOKEN`, e assine o campo **messages**. Mande "oi" do seu celular para o número de teste.
+
+### 4. Modelos de mensagem (para os lembretes)
+Em **WhatsApp Manager > Modelos de mensagem**, crie em português (pt_BR), categoria **Utilidade**, os
+modelos `lembrete_pagamento` e `pos_venda` com os textos de `MODELOS` em `livraria_agentes/lembretes.py`.
+Depois de aprovados: `python -m livraria_agentes.lembretes --whatsapp` (uma vez por dia).
+
+### Atendimento humano
+Quando um agente chama um atendente, o robô para de responder aquele cliente.
+
+```bash
+python -m livraria_agentes.equipe fila                         # quem está esperando
+python -m livraria_agentes.equipe responder 5511... "Oi! Aqui é a Júlia, da livraria."
+python -m livraria_agentes.equipe liberar 5511...              # o robô volta a atender
+```
 
 ## Testes
 
