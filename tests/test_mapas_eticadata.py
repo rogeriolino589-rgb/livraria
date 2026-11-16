@@ -87,3 +87,20 @@ def test_formato_do_erp19(tmp_path):
     assert d["total"] == 1670.0 and d["impostos"][0]["incidencia"] == 1670.0
     r = Base(tmp_path / "b.db").importar_diario_vendas(ERP19)
     assert r["erp"] == "erp19" and r["documentos"] == 2
+
+
+def test_diario_periodo_milhares_com_espaco_e_tipos_sem_barra():
+    from livraria_agentes.interno.mapas_eticadata import forma_financeiro, ler_diario_periodo
+    texto = """24/09/2026 DEVOL 2026-000001 7 Ponto 24 -6 490,00  0,00  0,00  0,00 -6 490,00 -6 490,00  0,00
+02/11/2026 V/DIN 2026-005926 2 Dinheiro / Ponto 24 14 400,00  0,00  0,00  0,00 14 400,00 14 400,00  0,00
+02/11/2026 V/DIN 2026-005927 7 Dinheiro 1 000,00  0,00  0,00  0,00 1 000,00 1 000,00  0,00
+ 8 910,00Subtotal:
+"""
+    r = ler_diario_periodo(texto)
+    assert r["nao_lidas"] == [] and r["soma"] == r["total_relatorio"] == 8910.0
+    d = r["documentos"][("DEVOL", "2026-000001")]
+    assert d["data"] == "2026-09-24" and d["vendedor"] == "7" and d["meio"] == "Ponto 24" and d["total"] == -6490.0
+    assert r["documentos"][("V/DIN", "2026-005926")]["meio"] == "Dinheiro / Ponto 24"
+    assert forma_financeiro("Ponto 24") == "Cartão / POS"
+    assert forma_financeiro("Dinheiro / Ponto 24") == "Misto: Dinheiro + Cartão / POS"
+    assert forma_financeiro("") == "Por confirmar"

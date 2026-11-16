@@ -299,13 +299,48 @@ def gerar(pasta: Path, saida: Path) -> dict:
             "documentos_com_data": sum(1 for d in vendas if d["data"]), "documentos": len(vendas)}
 
 
-if __name__ == "__main__":
-    pasta = Path(sys.argv[1])
-    saida = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("relatorios/CPAD_Mocambique_analise_vendas.xlsx")
-    print(gerar(pasta, saida))
+def formas_por_dia(vendas: list[dict], diarios: list[Path], avisos: list) -> dict:
+    """Forma de pagamento de cada venda pelo Diário de Vendas do Eticadata (cruzamento pelo documento).
+    Valores da Análise de Vendas (sem IVA) repartidos por dia, categoria do Financeiro e forma.
+    Faturas (FACT) não passam no caixa: ficam «A crédito (fatura)»."""
+    from .mapas_eticadata import forma_financeiro, ler_diario_periodo
+    meio, periodo = {}, []
+    for arq in diarios:
+        r = ler_diario_periodo(Path(arq).read_text(encoding="utf-8"))
+        if r["total_relatorio"] is not None and abs(r["soma"] - r["total_relatorio"]) > 0.05:
+            avisos.append(f"{Path(arq).name}: a soma dos documentos {r['soma']} não bate com o subtotal {r['total_relatorio']}")
+        if r["nao_lidas"]:
+            avisos.append(f"{Path(arq).name}: {len(r['nao_lidas'])} linha(s) de documento não lidas")
+        datas = [d["data"] for d in r["documentos"].values()]
+        if datas:
+            periodo.append((min(datas), max(datas)))
+        for k, d in r["documentos"].items():
+            meio[k] = d["meio"]
+    if not meio:
+        return {"linhas": [], "resumo": {}}
+    soma = collections.defaultdict(float)
+    resumo = collections.defaultdict(float)
+    for d in vendas:
+        if not d["data"] or not any(a <= d["data"] <= b for a, b in periodo):
+            continue
+        k = (d["tipo"], d["numero"])
+        if k in meio:
+            forma = forma_financeiro(meio[k])
+        elif d["tipo"] == "FACT":
+            forma = "A crédito (fatura)"
+        else:
+            forma = "Por confirmar"
+        cat = "b"
+        if d.get("canal") == "Atacado":
+            cat = "r" if segmento(d["tipo_cliente"]) == "Livrarias e revendedores" else "i"
+        soma[(d["data"], cat, forma)] += d["liquido"]
+        resumo[forma] += d["liquido"]
+    return {"linhas": [[*k, round(v, 2)] for k, v in sorted(soma.items()) if abs(v) >= 0.005],
+            "resumo": {f: round(v, 2) for f, v in sorted(resumo.items(), key=lambda i: -i[1])}}
 
 
-def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_vendedor: int = 60) -> dict:
+def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_vendedor: int = 60,
+                  diarios: list[Path] | None = None) -> dict:
     """Dados resumidos para o superapp (ERP da CPAD): vendas por dia e vendedor com varejo/atacado, zonas, tipos
     de entidade e artigos. Valores sem IVA, como a Análise de Vendas do Eticadata."""
     import json
@@ -334,6 +369,7 @@ def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_ven
             g[{"Varejo": 2, "Atacado": 3}.get(d["canal"], 4)] += d["liquido"]
             if d["canal"] == "Atacado":
                 g[seg_idx[segmento(d["tipo_cliente"])]] += d["liquido"]
+    fp = formas_por_dia(vendas, diarios or [], dados["avisos"])
     zonas = collections.defaultdict(lambda: [0.0, 0.0, 0.0])
     for erp, z in dados["zonas"].items():
         for x in z["registos"]:
@@ -366,7 +402,19 @@ def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_ven
                     for k, a in sorted(art.items(), key=lambda i: -i[1][2])[:top_artigos]],
         "artigosVend": {v: [[k, b[0], round(b[1]), r2(b[2])] for k, b in sorted(m.items(), key=lambda i: -i[1][2])[:top_por_vendedor]]
                         for v, m in av.items()},
+        "fp": fp["linhas"],
+        "colunas_fp": ["data", "categoria (b balcão, r revendedores, i igrejas e instituições)", "forma", "valor"],
+        "fp_resumo": fp["resumo"],
         "avisos": dados["avisos"],
     }
     Path(saida).write_text(json.dumps(saida_dados, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return {"arquivo": str(saida), "dias": len(saida_dados["dias"]), "bytes": Path(saida).stat().st_size}
+
+
+if __name__ == "__main__":
+    if sys.argv[1] == "--json":  # python -m ... --json PASTA SAIDA.json [DIARIO.txt ...]
+        print(exportar_json(Path(sys.argv[2]), Path(sys.argv[3]), diarios=[Path(a) for a in sys.argv[4:]]))
+        sys.exit()
+    pasta = Path(sys.argv[1])
+    saida = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("relatorios/CPAD_Mocambique_analise_vendas.xlsx")
+    print(gerar(pasta, saida))

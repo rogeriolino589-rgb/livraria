@@ -134,3 +134,52 @@ def conferir(diario: dict, caixa: dict) -> list[str]:
     if caixa["data"] and datas and datas != {caixa["data"]}:
         avisos.append(f"Datas diferentes: caixa {caixa['data']}, diário {sorted(datas)}")
     return avisos
+
+
+# ---- Diário de Vendas de um período longo (ex.: 01/08/2022 a 16/11/2026, centenas de páginas)
+# Formato diferente do diário diário: milhares com espaço ("6 490,00") e tipos sem barra (DEVOL).
+_NUM_P = r"-?\d{1,3}(?:[   ]\d{3})*,\d{2}"
+_LINHA_P = re.compile(
+    rf"^(\d{{2}}/\d{{2}}/\d{{4}})\s+(\S+)\s+(\d{{4}}-\d+)\s+(?:(\d+|N/D)\s+)?(.*?)\s*"
+    + r"\s+".join([f"({_NUM_P})"] * 7) + r"\s*$")
+
+# meio de pagamento do Eticadata -> forma de pagamento do Financeiro do superapp
+FORMAS_FINANCEIRO = {
+    "Dinheiro": "Dinheiro", "Numerário Meticais": "Dinheiro", "Ponto 24": "Cartão / POS",
+    "Transferência": "Transferência bancária", "Cheque": "Cheque",
+    "Crédito Conta Corrente": "Crédito (conta corrente)",
+}
+
+
+def forma_financeiro(meio: str) -> str:
+    """Um meio só vai para a forma equivalente; meios combinados («Dinheiro / Ponto 24») ficam como «Misto: …»,
+    porque o diário só traz o total do documento e não a parte paga em cada meio."""
+    meio = (meio or "").strip()
+    if meio in FORMAS_FINANCEIRO:
+        return FORMAS_FINANCEIRO[meio]
+    if "/" in meio:
+        return "Misto: " + " + ".join(FORMAS_FINANCEIRO.get(p.strip(), p.strip()) for p in meio.split("/"))
+    return meio or "Por confirmar"
+
+
+def ler_diario_periodo(texto: str) -> dict:
+    """Documentos do Diário de Vendas de um período: {(tipo, numero): {data, vendedor, meio, total, pago}}
+    e o «Subtotal» (Total Doc. das vendas menos devoluções) para conferir. O «Total:» do relatório é o valor pago."""
+    num = lambda x: float(re.sub(r"[   ]", "", x).replace(",", "."))
+    docs, nao_lidas = {}, []
+    for linha in texto.splitlines():
+        linha = linha.strip()
+        if not re.match(r"\d{2}/\d{2}/\d{4}\s", linha):
+            continue
+        m = _LINHA_P.match(linha)
+        if not m:
+            nao_lidas.append(linha)
+            continue
+        v = [num(m.group(i)) for i in range(6, 13)]
+        docs[(m.group(2).upper(), m.group(3))] = {
+            "data": _data(m.group(1)), "vendedor": m.group(4) or "N/D", "meio": m.group(5).strip(),
+            "mercadoria": v[0], "desconto": v[1], "imposto": v[2], "total": v[4], "pago": v[5]}
+    # o pypdf põe o rótulo depois dos números: "... 69 100 810,73Subtotal:" (o último é o Total Doc.)
+    t = re.findall(rf"({_NUM_P})\s*Subtotal:", texto)
+    return {"documentos": docs, "nao_lidas": nao_lidas, "total_relatorio": num(t[-1]) if t else None,
+            "soma": round(sum(d["total"] for d in docs.values()), 2)}

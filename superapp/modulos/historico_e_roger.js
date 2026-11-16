@@ -82,16 +82,21 @@ let jvT=[],jvCtl=null,jvSample;
   finally{jvCtl=null;S.disabled=false;Stop.hidden=true;I.focus()}}})();
 // ---- Lançar o histórico como entradas no Financeiro (todos os anos; salta dias que já têm vendas lançadas)
 const HV_FP='Histórico Eticadata';
+const HV_CAT={b:'Vendas — balcão',r:'Vendas — revendedores',i:'Vendas — igrejas e instituições'};
+let _hvFP=null;function hvFP(){if(_hvFP)return _hvFP;_hvFP={};(hvDados().fp||[]).forEach(([d,k,f,v])=>{(_hvFP[d]||(_hvFP[d]=[])).push([k,f,v])});
+ Object.values(_hvFP).forEach(a=>{const t={};a.forEach(([k,f,v])=>{t[k]=(t[k]||0)+v});a.forEach(x=>{if(t[x[0]]<0)x[2]=0})});return _hvFP}
 function hvEntradas(){const dias={};hvDados().dias.forEach(r=>{const g=dias[r[0]]||(dias[r[0]]={b:0,r:0,i:0,n:0});g.b+=r[5]+r[7];g.r+=(r[9]||0);g.i+=(r[8]||0)+(r[10]||0);g.n+=r[3]});return dias}
 async function hvLancarFinanceiro(){if(!window.FIN){toast('Financeiro indisponível.',1);return}
  const F=await FIN.get(),ja=new Set((F.mov||[]).filter(m=>m.tipo==='E'&&String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('hist-')!==0).map(m=>m.data));
  const anosOreate=new Set((F.mov||[]).filter(m=>String(m.nota||'').indexOf('Oreate')===0).map(m=>String(m.data).slice(0,4)));
- const dias=hvEntradas(),novas=[];let saltados=0,tot=0;
+ const dias=hvEntradas(),novas=[];let saltados=0,tot=0,comFP=0;
  for(const [d,g] of Object.entries(dias).sort()){if(ja.has(d)||anosOreate.has(d.slice(0,4))){saltados++;continue}
   let b=g.b,r=g.r,i=g.i;if(r<0){b+=r;r=0}if(i<0){b+=i;i=0}
-  [['b','Vendas — balcão',b],['r','Vendas — revendedores',r],['i','Vendas — igrejas e instituições',i]].forEach(([k,cat,v])=>{v=Math.round(v*100)/100;if(v>0){novas.push({id:'hist-'+d+'-'+k,data:d,tipo:'E',cat,parte:'Eticadata — Análise de Vendas',fp:HV_FP,valor:v,nota:'Histórico Eticadata · sem IVA · '+g.n+' docs · forma de pagamento a confirmar (Oreate)'});tot+=v}})}
+  const fpd=hvFP()[d];
+  if(fpd){fpd.forEach(([k,forma,v],j)=>{v=Math.round(v*100)/100;if(v>0){novas.push({id:'hist-'+d+'-'+k+'-'+j,data:d,tipo:'E',cat:HV_CAT[k],parte:'Eticadata — Diário de Vendas',fp:forma,valor:v,nota:'Histórico Eticadata · sem IVA · forma pelo Diário de Vendas (cruzado por documento)'});tot+=v;comFP++}})}
+  else [['b','Vendas — balcão',b],['r','Vendas — revendedores',r],['i','Vendas — igrejas e instituições',i]].forEach(([k,cat,v])=>{v=Math.round(v*100)/100;if(v>0){novas.push({id:'hist-'+d+'-'+k,data:d,tipo:'E',cat,parte:'Eticadata — Análise de Vendas',fp:HV_FP,valor:v,nota:'Histórico Eticadata · sem IVA · '+g.n+' docs · forma de pagamento por confirmar (falta o Diário de Vendas do ERP19)'});tot+=v}})}
  const antigos=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')===0).length;
- if(!confirm('Lançar '+novas.length.toLocaleString('pt-PT')+' entradas de vendas no Financeiro ('+Object.keys(dias).length.toLocaleString('pt-PT')+' dias de 2016 a hoje, '+hvM2(tot)+').\n\n'+saltados+' dias ficam de fora porque já têm vendas lançadas (os anos importados do Oreate, como 2025, ficam inteiros como estão).'+(antigos?'\n'+antigos+' lançamentos anteriores do histórico serão substituídos.':'')+'\n\nAs entradas aparecem em Vendas, Faturamento, Metas e relatórios. Não mexem no saldo de caixa e bancos até haver a forma de pagamento.'))return;
+ if(!confirm('Lançar '+novas.length.toLocaleString('pt-PT')+' entradas de vendas no Financeiro ('+Object.keys(dias).length.toLocaleString('pt-PT')+' dias de 2016 a hoje, '+hvM2(tot)+').\n\n'+saltados+' dias ficam de fora porque já têm vendas lançadas (os anos importados do Oreate, como 2025, ficam inteiros como estão).'+(antigos?'\n'+antigos+' lançamentos anteriores do histórico serão substituídos.':'')+'\n\n'+comFP.toLocaleString('pt-PT')+' entradas (de agosto de 2022 em diante) já levam a forma de pagamento real do Diário de Vendas: Dinheiro, Cartão / POS, Transferência, Cheque, misto ou a crédito (faturas). As de 2016 a julho de 2022 ficam «por confirmar» até chegar o Diário do ERP19.\n\nAs entradas aparecem em Vendas, Faturamento, Metas e relatórios. Por serem histórico (sem as despesas e depósitos desses anos), não mexem no saldo de caixa e bancos.'))return;
  F.mov=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')!==0);await FIN.addMany(novas);
  toast(novas.length.toLocaleString('pt-PT')+' entradas lançadas no Financeiro.');render()}
 async function hvRetirarFinanceiro(){if(!window.FIN)return;const F=await FIN.get(),n=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')===0).length;
