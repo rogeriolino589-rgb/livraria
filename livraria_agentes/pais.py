@@ -45,13 +45,26 @@ class Pais:
     indicativo: str  # ex.: 258
     digitos_nacionais: int  # dígitos do número sem o indicativo
     prefixos_moveis: list[str]  # começos dos números de telemóvel (sem o 0 inicial)
-    formas_pagamento: list[str]
+    pagamentos: list[dict]  # [{"id": "mpesa", "nome": "M-Pesa", "tipo": "carteira móvel", "operador": "Vodacom"}]
     taxa_entrega: float
     imposto_nome: str
     imposto_taxa: float
     id_fiscal: str  # NUIT, TIN, NIF...
     desconto_minimo: float | None = None  # compra mínima (moeda local) para o desconto de instituições
+    conversao_precos: dict | None = None  # {"de": "MZN", "fator": 0.0, "arredondar": 1}
     observacoes: list[str] = field(default_factory=list)
+
+    @property
+    def formas_pagamento(self) -> list[str]:
+        return [p["nome"] for p in self.pagamentos]
+
+    @property
+    def ids_pagamento(self) -> list[str]:
+        return [p["id"] for p in self.pagamentos] + ["outra"]
+
+    def descricao_pagamentos(self) -> str:
+        """'M-Pesa (Vodacom), e-Mola (Movitel), ...' para os agentes e relatórios."""
+        return ", ".join(p["nome"] + (f" ({p['operador']})" if p.get("operador") else "") for p in self.pagamentos)
 
     @property
     def tz(self) -> ZoneInfo:

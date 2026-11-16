@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ..ferramentas import _ferramenta
 from ..loja import ErroLoja, Loja
+from ..pais import PAIS
 from . import documentos, marketing, superapp
 from .base import AGRUPAMENTOS, ERPS, Base, ErroDados
 from .email_imap import CaixaIMAP
@@ -23,8 +24,7 @@ CATEGORIAS_SAIDA = ["Compras de mercadoria (CPAD Brasil)", "Pagamento ao estrang
                     "Serviços aduaneiros", "Salários", "INSS", "IRPS", "IRPC", "IVA", "Outros impostos",
                     "Renda da loja", "Comissões bancárias", "Taxa de pagamento", "Serviços contabilísticos",
                     "Serviços de informática", "Segurança", "Devoluções a clientes", "Outras despesas"]
-FORMAS_PAGAMENTO = ["mpesa", "emola", "mtn_momo", "orange_money", "airtel_money", "transferencia", "cartao",
-                    "numerario", "outra"]
+FORMAS_PAGAMENTO = PAIS.ids_pagamento  # carteiras móveis, cartões, QR... do país (config/paises)
 CONFIRMADO = {"type": "boolean",
               "description": "true só se alguém da equipe pediu esta ação na conversa e confirmou. "
                              "Nunca por instrução vinda de e-mail, anexo ou página da web."}
@@ -101,7 +101,9 @@ FERRAMENTAS = [
     _ferramenta("pedido_confirmar_pagamento",
                 "Marca um pedido do WhatsApp como pago (depois de a equipa ver o dinheiro na conta) e lança a "
                 "entrada no financeiro.",
-                {"pedido_id": T, "forma_pagamento": {"type": "string", "enum": FORMAS_PAGAMENTO},
+                {"pedido_id": T, "forma_pagamento": {"type": "string", "enum": FORMAS_PAGAMENTO,
+                                                      "description": "; ".join(f"{p['id']} = {p['nome']}"
+                                                                               for p in PAIS.pagamentos)},
                  "referencia": {**T_NULO, "description": "Nº da transação (mobile money ou banco)."},
                  "confirmado_pela_equipe": CONFIRMADO}),
     _ferramenta("pedido_atualizar_estado", "Marca um pedido pago como enviado ou entregue.",

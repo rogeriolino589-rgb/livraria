@@ -486,6 +486,7 @@ class Loja:
             livro["estoque"] = estoque
             if preco is not None:
                 livro["preco"] = round(preco, 2)
+                livro["preco_manual"] = True  # a importação do catálogo comum não substitui este preço
             self.salvar()
         return {"ok": True, "livro_id": livro_id, "antes": anterior,
                 "agora": {"estoque": livro["estoque"], "preco": livro["preco"]}}
@@ -587,7 +588,8 @@ class Loja:
             if p["status"] not in ("aguardando_pagamento", "pagamento_em_verificacao"):
                 raise ErroLoja(f"O pedido está '{p['status']}'.")
             p["status"] = "pago"
-            p["pagamento"] = {"forma": forma, "referencia": referencia,
+            nomes = {x["id"]: x["nome"] for x in PAIS.pagamentos}
+            p["pagamento"] = {"forma": forma, "forma_nome": nomes.get(forma, forma), "referencia": referencia,
                               "confirmado_em": self.relogio().isoformat(timespec="minutes")}
             self._nova_tarefa(f"Pedido {pedido_id} pago: embalar e "
                               f"{'enviar ao cliente' if p['entrega'] == 'envio' else 'deixar pronto para levantamento'}",

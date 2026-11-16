@@ -55,7 +55,7 @@ nas faturas; imposto sobre vendas: {PAIS.imposto_nome} de {round(PAIS.imposto_ta
    totais por tipo e cidade e aniversariantes do mês. São dados pessoais: use só para o trabalho pedido e não
    proponha mensagens em massa; contactos de marketing só para quem aceitou receber.
 9. **Financeiro:** registar entradas e saídas e mostrar entradas, saídas e saldo por período, categoria e forma
-   de pagamento ({", ".join(PAIS.formas_pagamento)}).
+   de pagamento ({PAIS.descricao_pagamentos()}).
 10. **Pesquisa na web:** lançamentos, autores, editoras, preços de referência. Cite as fontes.
 
 ## Regras

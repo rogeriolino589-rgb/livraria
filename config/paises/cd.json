@@ -25,13 +25,6 @@
     "8",
     "9"
   ],
-  "formas_pagamento": [
-    "M-Pesa",
-    "Orange Money",
-    "Airtel Money",
-    "transferência bancária",
-    "numerário"
-  ],
   "taxa_entrega": 0.0,
   "imposto_nome": "TVA",
   "imposto_taxa": 0.16,
@@ -40,7 +33,56 @@
     "Moeda: muitos preços são em dólares (USD); o franco congolês (CDF) também é usado. Decidir qual mostrar.",
     "Fuso: Kinshasa usa UTC+1; o leste (Lubumbashi, Goma) usa UTC+2 (Africa/Lubumbashi). Ajustar à cidade da loja.",
     "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
-    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático."
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático.",
+    "Preços: o catálogo é o mesmo da CPAD Moçambique; defina conversao_precos.fator ou importe a tabela de preços local.",
+    "As carteiras M-Pesa, Orange Money e Airtel Money funcionam em USD e em CDF."
   ],
-  "desconto_minimo": null
+  "desconto_minimo": null,
+  "pagamentos": [
+    {
+      "id": "mpesa",
+      "nome": "M-Pesa",
+      "tipo": "carteira móvel",
+      "operador": "Vodacom"
+    },
+    {
+      "id": "orange_money",
+      "nome": "Orange Money",
+      "tipo": "carteira móvel",
+      "operador": "Orange"
+    },
+    {
+      "id": "airtel_money",
+      "nome": "Airtel Money",
+      "tipo": "carteira móvel",
+      "operador": "Airtel"
+    },
+    {
+      "id": "afrimoney",
+      "nome": "Afrimoney",
+      "tipo": "carteira móvel",
+      "operador": "Africell"
+    },
+    {
+      "id": "transferencia",
+      "nome": "Transferência bancária",
+      "tipo": "banco"
+    },
+    {
+      "id": "cartao",
+      "nome": "Cartão / POS",
+      "tipo": "cartão"
+    },
+    {
+      "id": "numerario",
+      "nome": "Numerário",
+      "tipo": "numerário"
+    }
+  ],
+  "conversao_precos": {
+    "de": "MZN",
+    "fator": null,
+    "arredondar": 1,
+    "_ajuda": "Preço local = preço em MZN × fator, arredondado. Defina o fator (ou importe uma tabela de preços local) antes de vender."
+  }
 }

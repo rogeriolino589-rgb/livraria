@@ -21,12 +21,6 @@
   "prefixos_moveis": [
     "7"
   ],
-  "formas_pagamento": [
-    "MTN MoMo",
-    "transferência bancária",
-    "cartão",
-    "numerário"
-  ],
   "taxa_entrega": 0.0,
   "imposto_nome": "VAT",
   "imposto_taxa": 0.15,
@@ -34,7 +28,50 @@
   "observacoes": [
     "O rand sul-africano (ZAR) também circula ao par com o lilangeni: decidir se aceita.",
     "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
-    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático."
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático.",
+    "Preços: o catálogo é o mesmo da CPAD Moçambique; defina conversao_precos.fator ou importe a tabela de preços local.",
+    "As carteiras e os bancos estão ligados pelo switch nacional de pagamentos (transferências instantâneas)."
   ],
-  "desconto_minimo": null
+  "desconto_minimo": null,
+  "pagamentos": [
+    {
+      "id": "mtn_momo",
+      "nome": "MTN MoMo",
+      "tipo": "carteira móvel",
+      "operador": "MTN Eswatini"
+    },
+    {
+      "id": "emali",
+      "nome": "e-Mali",
+      "tipo": "carteira móvel",
+      "operador": "Eswatini Mobile"
+    },
+    {
+      "id": "instacash",
+      "nome": "InstaCash",
+      "tipo": "carteira móvel",
+      "operador": "InstaCash (funciona em MTN e Eswatini Mobile)"
+    },
+    {
+      "id": "transferencia",
+      "nome": "Transferência bancária",
+      "tipo": "banco"
+    },
+    {
+      "id": "cartao",
+      "nome": "Cartão / POS",
+      "tipo": "cartão"
+    },
+    {
+      "id": "numerario",
+      "nome": "Numerário",
+      "tipo": "numerário"
+    }
+  ],
+  "conversao_precos": {
+    "de": "MZN",
+    "fator": null,
+    "arredondar": 1,
+    "_ajuda": "Preço local = preço em MZN × fator, arredondado. Defina o fator (ou importe uma tabela de preços local) antes de vender."
+  }
 }

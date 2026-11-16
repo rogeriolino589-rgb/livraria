@@ -142,6 +142,7 @@ WhatsApp separados), escolhida com `LIVRARIA_PAIS`:
 | `sz` | Eswatini | SZL (E) | inglês | rascunho a confirmar |
 | `za` | África do Sul | ZAR (R) | inglês | rascunho a confirmar |
 | `cd` | RD Congo | USD ($) | francês | rascunho a confirmar |
+| `mu` | Ilhas Maurício | MUR (Rs) | inglês (e francês) | rascunho a confirmar |
 
 O perfil define moeda e formato dos valores, fuso horário, línguas, indicativo e formato dos telemóveis,
 formas de pagamento, taxa de entrega, imposto, identificação fiscal e o mínimo para o desconto de
@@ -149,6 +150,28 @@ instituições (sem mínimo definido, não há desconto automático). Os agentes
 cliente escreve; as mensagens fixas e os modelos do WhatsApp existem em português, inglês e francês. Os
 pontos a confirmar em cada país estão em `observacoes` no próprio perfil. Para várias lojas no mesmo
 servidor, use uma pasta de dados por país (`LIVRARIA_DADOS=dados/estado_za`).
+
+### Pagamentos por país (PDV e confirmação de pagamentos)
+
+| País | Carteiras e meios eletrónicos |
+|---|---|
+| Moçambique | M-Pesa (Vodacom), e-Mola (Movitel), mKesh (Tmcel), transferência, cartão/POS, numerário |
+| Eswatini | MTN MoMo, e-Mali (Eswatini Mobile), InstaCash, transferência, cartão, numerário |
+| África do Sul | cartão/tap, Capitec Pay, PayShap, QR (SnapScan, Zapper, Scan to Pay), EFT/Instant EFT, Apple/Google/Samsung Pay, numerário |
+| RD Congo | M-Pesa (Vodacom), Orange Money, Airtel Money, Afrimoney (Africell), transferência, cartão, numerário |
+| Ilhas Maurício | MCB Juice, blink by Emtel, my.t money, QR MauCAS, cartão, transferência, numerário |
+
+A lista fica em `pagamentos` no perfil de cada país: ao confirmar um pagamento, a equipa escolhe o meio
+usado e o financeiro mostra os totais por meio. Para ligar cobranças automáticas (link de pagamento),
+cada operador tem a sua API de comerciante; isso é um passo à parte, país a país.
+
+### Catálogo comum, clientes por país
+
+O catálogo é o mesmo da CPAD em todos os países: cada loja importa o mesmo ficheiro e a importação
+acrescenta os produtos novos e atualiza os existentes, sem apagar nada, mantendo o stock local e os preços
+ajustados à mão. Fora de Moçambique, os preços vêm de uma tabela local (`--precos tabela.xlsx`) ou são
+convertidos de MZN com `conversao_precos.fator` no perfil (ou `--fator`); o stock começa a 0 e é de cada
+loja. A base de clientes é própria de cada país (importada só na loja desse país).
 
 ## Catálogo real da CPAD
 

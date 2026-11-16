@@ -11,7 +11,7 @@ import pytest
 from livraria_agentes.pais import PASTA_PAISES, carregar
 from livraria_agentes.textos import TEXTOS
 
-CODIGOS = ["mz", "sz", "za", "cd"]
+CODIGOS = ["mz", "sz", "za", "cd", "mu"]
 
 
 @pytest.mark.parametrize("codigo", CODIGOS)
@@ -25,6 +25,7 @@ def test_dinheiro_no_formato_de_cada_pais():
     assert carregar("za").dinheiro(1250, True) == "R 1 250.00"
     assert carregar("sz").dinheiro(1250, True) == "E 1 250.00"
     assert carregar("cd").dinheiro(1250, True) == "$ 1 250,00"
+    assert carregar("mu").dinheiro(1250, True) == "Rs 1,250.00"
 
 
 def test_numeros_de_telefone_por_pais():
@@ -34,6 +35,8 @@ def test_numeros_de_telefone_por_pais():
     assert carregar("sz").numeros_whatsapp("7612 3456") == ["26876123456"]
     assert carregar("cd").numeros_whatsapp("+243 81 234 5678") == ["243812345678"]
     assert carregar("cd").numeros_whatsapp("0812345678 / 0991234567") == ["243812345678", "243991234567"]
+    assert carregar("mu").numeros_whatsapp("5712 3456") == ["23057123456"]
+    assert carregar("mu").numeros_whatsapp("212 3456") == []  # fixo
 
 
 def test_textos_completos_em_todas_as_linguas():
@@ -68,3 +71,21 @@ def test_robo_da_rdc_fala_frances():
                          "from livraria_agentes.canal import CanalWhatsApp; "
                          "print(MODELOS['pos_venda']); print(FUSO); print(CanalWhatsApp('t', '1').idioma)")
     assert "Bonjour {{1}}" in saida and "Africa/Kinshasa" in saida and saida.strip().endswith("fr")
+
+
+def test_carteiras_eletronicas_de_cada_pais():
+    ids = {c: carregar(c).ids_pagamento for c in CODIGOS}
+    assert {"mpesa", "emola", "mkesh"} <= set(ids["mz"])
+    assert {"mtn_momo", "emali", "instacash"} <= set(ids["sz"])
+    assert {"capitec_pay", "payshap", "qr"} <= set(ids["za"])
+    assert {"mpesa", "orange_money", "airtel_money", "afrimoney"} <= set(ids["cd"])
+    assert {"mcb_juice", "blink", "myt_money", "maucas_qr"} <= set(ids["mu"])
+    assert all("numerario" in i and i[-1] == "outra" for i in ids.values())
+    assert "e-Mola (Movitel)" in carregar("mz").descricao_pagamentos()
+
+
+def test_robo_das_mauricias_e_pagamento_no_pdv():
+    saida = _rodar("mu", "from livraria_agentes.agentes import SISTEMA; "
+                         "from livraria_agentes.interno.ferramentas import FORMAS_PAGAMENTO; "
+                         "print(SISTEMA); print(FORMAS_PAGAMENTO)")
+    assert "MCB Juice (MCB)" in saida and "Rs 1,250.00" in saida and "'blink'" in saida

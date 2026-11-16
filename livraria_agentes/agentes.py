@@ -22,7 +22,7 @@ POLITICAS = f"""\
 - Funcionamento: segunda a sábado, das 9h às 18h. Atendimento por WhatsApp 24h com agentes de IA.
 - Entrega: levantamento na loja (grátis) ou entrega ao domicílio ({_ENTREGA}; 1 a 3 dias úteis na cidade;
   outras regiões a combinar com a equipa).
-- Pagamento: {", ".join(PAIS.formas_pagamento)}, pelo link de pagamento. O pedido vence em 2 dias se não for pago.
+- Pagamento: {PAIS.descricao_pagamentos()}, pelo link de pagamento. O pedido vence em 2 dias se não for pago.
 - Troca: até 7 dias após o recebimento, com o livro sem marcas de uso. Livro com defeito de fábrica: troca garantida.
 - Encomendas de livros fora do catálogo (e encomendas de igrejas em quantidade): abrir chamado para a equipa
   verificar.

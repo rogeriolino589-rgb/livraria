@@ -36,7 +36,8 @@ def loja(tmp_path):
 
 def test_importa_da_pagina_do_erp(loja, tmp_path):
     r = importar(loja, _pagina(tmp_path, PRODUTOS))
-    assert r == {"produtos": 5, "com_preco": 4, "com_preco_marca_cpad": 2, "com_preco_e_stock": 3,
+    assert r == {"produtos": 5, "novos": 5, "atualizados": 0, "com_preco": 4, "com_preco_marca_cpad": 2,
+                 "com_preco_e_stock": 3,
                  "por_categoria": {"Bíblias": 2, "Lições Bíblicas (Escola Dominical)": 1, "Livros": 1}}
     assert loja.detalhes_livro("01230")["genero"] == "Bíblias"
     assert loja.dados["pedidos"]  # o resto da loja continua igual
@@ -70,3 +71,30 @@ def test_importa_de_planilha(loja, tmp_path):
     assert loja.detalhes_livro("A1") | {} == {"id": "A1", "isbn": "978", "titulo": "HARPA CRISTA GRANDE", "autor": "",
                                              "genero": "Harpa Cristã", "preco": 650.0, "estoque": 4, "sinopse": "",
                                              "marca": ""}
+
+
+def test_atualizacao_mantem_stock_local_e_preco_manual(loja, tmp_path):
+    importar(loja, _pagina(tmp_path, PRODUTOS))
+    loja.ajustar_estoque("0100", 9, 1500.0)  # preço e stock mudados na loja
+    novo = PRODUTOS[:2] + [["0100", "9788577422166", "E SE DEUS FOR CONTRA NOS", "LIVROS", 1400.0, 2],
+                           ["0999", "", "LIVRO NOVO DA CPAD", "CPAD - LIVROS", 900.0, 10]]
+    r = importar(loja, _pagina(tmp_path, novo))
+    assert r["novos"] == 1 and r["atualizados"] == 3 and r["produtos"] == 6  # nada é apagado
+    assert loja.detalhes_livro("0100")["preco"] == 1500.0  # preço manual mantido
+    assert loja.detalhes_livro("0999")["preco"] == 900.0
+
+
+def test_outro_pais_converte_precos_e_comeca_sem_stock(loja, tmp_path, monkeypatch):
+    import livraria_agentes.importar_catalogo as ic
+    from livraria_agentes.pais import carregar
+
+    monkeypatch.setattr(ic, "PAIS", carregar("za"))
+    with pytest.raises(ErroLoja, match="conversao_precos"):
+        importar(loja, _pagina(tmp_path, PRODUTOS))
+    importar(loja, _pagina(tmp_path, PRODUTOS), fator=0.28)
+    biblia = loja.detalhes_livro("01230")
+    assert biblia["preco"] == 106.0 and biblia["estoque"] == 0  # 380 MT × 0,28 = 106,40, arredondado ao rand
+    tabela = tmp_path / "precos_za.csv"
+    tabela.write_text("codigo;preco\n01230;99,00\n", encoding="utf-8")
+    importar(loja, _pagina(tmp_path, PRODUTOS), precos_locais=tabela, fator=0.28)
+    assert loja.detalhes_livro("01230")["preco"] == 99.0
