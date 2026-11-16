@@ -84,5 +84,9 @@
     "fator": null,
     "arredondar": 1,
     "_ajuda": "Preço local = preço em MZN × fator, arredondado. Defina o fator (ou importe uma tabela de preços local) antes de vender."
-  }
+  },
+  "endereco": "",
+  "contactos": "",
+  "email": "",
+  "catalogo_url": "https://www.cpadweb.com.br/catalogos/c-geraldevendas-2025-2026/"
 }

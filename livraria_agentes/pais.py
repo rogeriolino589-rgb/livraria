@@ -52,6 +52,10 @@ class Pais:
     id_fiscal: str  # NUIT, TIN, NIF...
     desconto_minimo: float | None = None  # compra mínima (moeda local) para o desconto de instituições
     conversao_precos: dict | None = None  # {"de": "MZN", "fator": 0.0, "arredondar": 1}
+    endereco: str = ""
+    contactos: str = ""  # telefones / WhatsApp da loja
+    email: str = ""
+    catalogo_url: str = ""
     observacoes: list[str] = field(default_factory=list)
 
     @property

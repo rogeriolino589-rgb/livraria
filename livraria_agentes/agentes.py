@@ -10,8 +10,9 @@ from .pais import PAIS
 
 NOME_LOJA = PAIS.nome_loja  # LOJA_NOME substitui, se definida
 # Endereço e contactos oficiais: defina LOJA_ENDERECO e LOJA_CONTACTOS quando estiverem confirmados.
-ENDERECO = os.environ.get("LOJA_ENDERECO", "")
-CONTACTOS = os.environ.get("LOJA_CONTACTOS", "")
+ENDERECO = os.environ.get("LOJA_ENDERECO", PAIS.endereco)
+CONTACTOS = os.environ.get("LOJA_CONTACTOS", PAIS.contactos) + (
+    f"; e-mail {PAIS.email}" if PAIS.email and "LOJA_CONTACTOS" not in os.environ else "")
 
 _ENTREGA = (f"taxa fixa de {PAIS.dinheiro(PAIS.taxa_entrega, True)}" if PAIS.taxa_entrega
             else "valor combinado com a equipa")
@@ -28,7 +29,9 @@ POLITICAS = f"""\
   verificar.
 """ + (f"- Endereço da loja: {ENDERECO}\n" if ENDERECO else
        "- Endereço da loja: ainda não configurado; se perguntarem, chame um atendente.\n") + (
-    f"- Contactos: {CONTACTOS}\n" if CONTACTOS else "")
+    f"- Contactos: {CONTACTOS}\n" if CONTACTOS else "") + (
+    f"- Catálogo geral da CPAD (para consulta; preços e stock locais vêm sempre das ferramentas): "
+    f"{PAIS.catalogo_url}\n" if PAIS.catalogo_url else "")
 
 _REGRA_DESCONTO = (f"""- Desconto de instituições (o único que existe): igrejas, instituições, revendedores e livrarias registados
   no cadastro da CPAD, em compras a partir de {_DESCONTO_MIN} em produtos, têm 30% nos Livros CPAD, Bíblias CPAD
