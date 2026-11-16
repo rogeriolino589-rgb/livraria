@@ -85,9 +85,9 @@ Depois de aprovados: `python -m livraria_agentes.lembretes --whatsapp` (uma vez 
 
 ### Várias linhas de WhatsApp
 
-Em Moçambique há uma linha por tipo de cliente: igrejas e instituições (+258 86 504 8400), venda a retalho —
-clientes VIP, pastores e missionários — (+258 84 468 9369),
-livrarias e revendedores (+258 84 508 2787) e atendimento internacional em inglês e francês (+258 87 712 7070).
+Em Moçambique há uma linha (e um vendedor) por tipo de cliente: igrejas (+258 86 504 8400); empresas,
+instituições, livrarias e revendedores (+258 84 508 2787); venda a retalho — clientes VIP, pastores e
+missionários — (+258 84 468 9369) e atendimento internacional em inglês e francês (+258 87 712 7070).
 Se várias linhas forem ligadas à mesma conta da Meta, o servidor responde sempre pelo número em que o cliente
 escreveu, e os agentes indicam a linha certa conforme o tipo do cliente (`contactos_por_tipo` no perfil do país).
 
