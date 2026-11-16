@@ -1,14 +1,14 @@
 {
-  "_ajuda": "Copie para config/vendedores.json (fica fora do Git) e escreva o WhatsApp pessoal (só dígitos, com 258) de cada vendedor. Sem número, o vendedor recebe só as tarefas.",
+  "_ajuda": "Copie para config/vendedores.json. Os vendedores usam as linhas corporativas da CPAD (nunca números pessoais): o aviso vai para o WhatsApp corporativo de cada linha, só dígitos com o indicativo.",
   "+258 86 504 8400": {
     "nome": "Damião Sebastião Cau",
     "atende": "igrejas",
-    "whatsapp": ""
+    "whatsapp": "258865048400"
   },
   "+258 84 508 2787": {
     "nome": "Sérgio Paulo Fernando",
     "atende": "empresas, instituições, revendedores e livrarias",
-    "whatsapp": ""
+    "whatsapp": "258845082787"
   },
   "+258 84 468 9369": {
     "nome": "",
@@ -18,6 +18,6 @@
   "+258 87 712 7070": {
     "nome": "Priscila Vilanculos",
     "atende": "atendimento internacional (inglês e francês), intermediação por enquanto",
-    "whatsapp": ""
+    "whatsapp": "258877127070"
   }
 }

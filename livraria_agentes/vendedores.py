@@ -4,9 +4,14 @@ Cada linha (ex.: igrejas, empresas/instituições/livrarias/revendedores, retalh
 robô passa um cliente para uma pessoa, ou quando entra um pedido, o vendedor da linha desse cliente recebe
 um aviso no WhatsApp pessoal e uma tarefa em seu nome.
 
-Configuração em config/vendedores.json (fora do Git, porque tem números pessoais), por número da linha:
+Configuração em config/vendedores.json, por número da linha. Os vendedores usam as linhas corporativas (nunca
+números pessoais), por isso o aviso vai para o WhatsApp corporativo da linha:
 
-    {"+258 86 504 8400": {"nome": "Maria", "whatsapp": "258840000001"}}
+    {"+258 86 504 8400": {"nome": "Damião Sebastião Cau", "whatsapp": "258865048400"}}
+
+Se o robô responder pelo mesmo número da linha (coexistência da app WhatsApp Business com a API), o vendedor já
+vê a conversa na app e o aviso por mensagem não é enviado (um número não manda mensagem a si próprio): fica a
+tarefa. Indique o número do robô em WHATSAPP_NUMERO_ROBO para o sistema saber.
 
 A linha de cada tipo de cliente vem de `contactos_por_tipo` no perfil do país.
 """
@@ -32,6 +37,11 @@ def carregar(arquivo: Path | None = None) -> dict[str, dict]:
     dados = json.loads(caminho.read_text(encoding="utf-8"))
     # vendedor sem WhatsApp ainda recebe as tarefas; o aviso no telemóvel começa quando o número for posto
     return {linha: v for linha, v in dados.items() if not linha.startswith("_") and v.get("nome")}
+
+
+def numeros_do_robo() -> set[str]:
+    """Números (só dígitos) pelos quais o robô envia mensagens: WHATSAPP_NUMERO_ROBO, separados por vírgula."""
+    return {re.sub(r"\D", "", n) for n in os.environ.get("WHATSAPP_NUMERO_ROBO", "").split(",") if n.strip()}
 
 
 def linha_do_tipo(tipo: str | None) -> str | None:
@@ -77,6 +87,9 @@ class Avisos:
                  f"(linha {linha})")
         tarefa = loja.criar_tarefa(f"{assunto}: {nome_cliente} (+{telefone_cliente}). {detalhe}",
                                    vendedor["nome"], loja.relogio().date().isoformat())
+        if vendedor.get("whatsapp") and vendedor["whatsapp"] in numeros_do_robo():
+            return {"vendedor": vendedor["nome"], "linha": linha, "enviado": False, "tarefa_id": tarefa["id"],
+                    "aviso": "o robô usa a mesma linha do vendedor: a conversa já aparece na app dele"}
         if not vendedor.get("whatsapp"):
             return {"vendedor": vendedor["nome"], "linha": linha, "enviado": False, "tarefa_id": tarefa["id"],
                     "aviso": "vendedor sem WhatsApp configurado: só a tarefa foi criada"}

@@ -7,4 +7,3 @@ dados/estado/
 dados/entrada/*/*
 !dados/entrada/*/.gitkeep
 config/erps.json
-config/vendedores.json

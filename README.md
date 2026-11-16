@@ -93,8 +93,12 @@ escreveu, e os agentes indicam a linha certa conforme o tipo do cliente (`contac
 
 ### Avisos aos vendedores
 
-Cada linha tem um vendedor. Copie `config/vendedores.exemplo.json` para `config/vendedores.json` (fica fora do
-Git) e escreva o nome e o WhatsApp pessoal de cada um. Quando o robô passa um cliente para uma pessoa, ou
+Cada linha corporativa tem um vendedor, em `config/vendedores.json`: igrejas — Damião Sebastião Cau
+(+258 86 504 8400); empresas, instituições, revendedores e livrarias — Sérgio Paulo Fernando (+258 84 508 2787);
+atendimento internacional — irmã Priscila Vilanculos (+258 87 712 7070); retalho — ainda sem vendedor. Os
+vendedores usam só as linhas corporativas, e o aviso vai para a linha. Se o robô responder pelo mesmo número da
+linha (coexistência da app WhatsApp Business com a API), defina `WHATSAPP_NUMERO_ROBO`: o vendedor já vê a
+conversa na app e o robô não manda mensagem a si próprio, ficando só a tarefa. Quando o robô passa um cliente para uma pessoa, ou
 quando entra um pedido, o vendedor da linha desse cliente recebe no WhatsApp: cliente, tipo, número (com link
 wa.me), motivo ou total do pedido; e ganha uma tarefa em seu nome, que aparece na lista das 7h30. Se o vendedor
 não falou com o número da loja nas últimas 24h, o aviso segue pelo modelo aprovado `aviso_vendedor`

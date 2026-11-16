@@ -119,3 +119,20 @@ def test_outros_paises_vao_para_a_linha_internacional():
                             "print(linha_do_tipo('Igreja'), linha_do_tipo(None))"],
                            env=env, capture_output=True, text=True, check=True).stdout
     assert saida.split() == ["+258", "87", "712", "7070", "+258", "87", "712", "7070"]
+
+
+def test_exemplo_usa_as_linhas_corporativas():
+    from pathlib import Path
+
+    ex = carregar(Path(__file__).resolve().parent.parent / "config" / "vendedores.exemplo.json")
+    assert ex["+258 86 504 8400"]["whatsapp"] == "258865048400"
+    assert ex["+258 84 508 2787"]["whatsapp"] == "258845082787"
+
+
+def test_robo_na_mesma_linha_nao_manda_mensagem_a_si_proprio(loja, monkeypatch):
+    monkeypatch.setenv("WHATSAPP_NUMERO_ROBO", "+258 86 504 8400")
+    enviados = []
+    vendedores = {"+258 86 504 8400": {"nome": "Damião Sebastião Cau", "whatsapp": "258865048400"}}
+    r = Avisos(lambda n, t: enviados.append(n), vendedores).avisar(loja, IGREJA, "Pedido novo PED-1", "x")
+    assert enviados == [] and "mesma linha" in r["aviso"]
+    assert loja.listar_tarefas("Damião Sebastião Cau", True)  # a tarefa fica
