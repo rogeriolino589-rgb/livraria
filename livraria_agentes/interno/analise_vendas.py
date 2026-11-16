@@ -191,7 +191,7 @@ def resumo(documentos: list[dict], nomes: dict[str, str] | None = None) -> list[
 # ---- Análise de Vendas agrupada por «Documento» exportada em PDF (texto do pypdf)
 # Linha: "<qtd com 3 decimais><nº documento>  <líquido> <desconto> <valor><tipo> <data>"; o tipo pode vir partido.
 _NUM_PDF = r"-?\d{1,3}(?:[   ]\d{3})*,\d{2}"
-_DOC_PDF = re.compile(rf"(-?[\d ]+,\d{{3}})(\d{{4}}-\d+)\s+({_NUM_PDF})\s*({_NUM_PDF})\s+({_NUM_PDF})\s*([A-Z/]+?)\s*"
+_DOC_PDF = re.compile(rf"(-?[\d ]+,\d{{3}})(\d{{4}}-\d+)\s+({_NUM_PDF})\s*({_NUM_PDF})\s*({_NUM_PDF})\s*([A-Z/]+?)\s*"
                       r"(?:\n\s*)?([A-Z/]*)\s*(\d{2})/(\d{2})/(\d{4})")
 
 
