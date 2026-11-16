@@ -91,7 +91,7 @@ def test_exemplo_tem_os_vendedores_da_cpad():
     assert ex["+258 86 504 8400"]["nome"] == "Damião Sebastião Cau"
     assert ex["+258 84 508 2787"]["nome"] == "Sérgio Paulo Fernando"
     assert ex["+258 87 712 7070"]["nome"] == "Priscila Vilanculos"
-    assert "+258 84 468 9369" not in ex  # retalho ainda sem vendedor
+    assert ex["+258 84 468 9369"]["nome"] == "Responsável do retalho (piloto)"
 
 
 def test_fora_da_janela_de_24h_usa_o_modelo_aprovado(loja):
