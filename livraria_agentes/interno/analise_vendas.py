@@ -84,16 +84,18 @@ def ler_datas_linhas(linhas) -> dict:
     """Relatório "Análise de Vendas — Documento": abreviatura, nº, data, qtd, valor, desconto, líquido."""
     import re
 
-    datas, total, soma = {}, None, 0.0
+    datas, valores, total, soma = {}, {}, None, 0.0
     for linha in linhas:
         v = [x for x in linha if str(x).strip() != ""]
         if len(v) == 7 and re.fullmatch(r"\d{2}/\d{2}/\d{4}", str(v[2]).strip()):
             d, m, a = str(v[2]).strip().split("/")
-            datas[(str(v[0]).strip().upper(), str(v[1]).strip())] = f"{a}-{m}-{d}"
+            chave = (str(v[0]).strip().upper(), str(v[1]).strip())
+            datas[chave] = f"{a}-{m}-{d}"
+            valores[chave] = float(v[6])
             soma += v[6]
         elif v and str(v[0]).startswith("Total: "):
             total = float(v[-1])
-    return {"datas": datas, "total_relatorio": total, "soma": round(soma, 2),
+    return {"datas": datas, "valores": valores, "total_relatorio": total, "soma": round(soma, 2),
             "confere": total is None or abs(soma - total) < 0.01}
 
 
