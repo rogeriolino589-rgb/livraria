@@ -142,6 +142,17 @@ o catálogo de exemplo. Produtos sem preço não são oferecidos a clientes. A b
 maiúsculas ("bíblia" encontra "BIBLIA"). Alterações feitas dentro da página do ERP ficam só no navegador
 onde foram feitas: para preços e stock atualizados, importe uma exportação recente em planilha.
 
+## Clientes da CPAD
+
+```bash
+python -m livraria_agentes.importar_clientes "CPAD ERP Moçambique — Livraria.html"   # ou clientes.xlsx / .csv
+```
+
+Importa os 12.068 clientes do ERP (igrejas, pastores, missionários, revendedores, clientes VIP...). Os números
+moçambicanos passam ao formato do WhatsApp; quando um cliente da lista escreve, os agentes já sabem o nome,
+o tipo e a cidade. A equipa procura clientes e aniversariantes no assistente interno. São dados pessoais:
+ficam só na base do robô (fora do Git), e mensagens de marketing só para quem aceitou receber.
+
 ## O dia a dia da loja (os 7 trabalhos)
 
 | Trabalho | Quem faz |

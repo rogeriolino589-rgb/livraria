@@ -13,6 +13,7 @@ import os
 import secrets
 import shutil
 import threading
+from collections import Counter
 import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -89,6 +90,38 @@ class Loja:
     # ------------------------------------------------------------ clientes
     def nome_cliente(self, telefone: str) -> str | None:
         return self.dados["clientes"].get(telefone, {}).get("nome")
+
+    def ficha_cliente(self, telefone: str) -> dict:
+        """O que a loja sabe do cliente desta conversa (nome, tipo, cidade), sem dados de outros clientes."""
+        c = self.dados["clientes"].get(telefone, {})
+        return {k: c[k] for k in ("nome", "tipo", "cidade") if c.get(k)}
+
+    def buscar_clientes(self, consulta: str, tipo: str | None, cidade: str | None) -> dict:
+        """Busca no cadastro de clientes (uso da equipa)."""
+        termos = [t for t in re.findall(r"[a-z0-9]+", _normalizar(consulta)) if len(t) > 1]
+        tipo_n, cidade_n = _normalizar(tipo or ""), _normalizar(cidade or "")
+        achados = []
+        for c in self.dados.get("cadastro_clientes", []):
+            if tipo_n and tipo_n not in _normalizar(c["tipo"]):
+                continue
+            if cidade_n and cidade_n not in _normalizar(c["cidade"]):
+                continue
+            texto = _normalizar(" ".join([c["nome"], c["telefone"], c["cidade"], c["bairro"], c["id_erp"]]))
+            if all(t in texto for t in termos):
+                achados.append(c)
+        return {"encontrados": len(achados), "clientes": achados[:30]}
+
+    def resumo_clientes(self) -> dict:
+        cadastro = self.dados.get("cadastro_clientes", [])
+        por = lambda campo: dict(Counter(c[campo] or "(sem informação)" for c in cadastro).most_common(15))
+        return {"total": len(cadastro), "com_whatsapp": sum(1 for c in cadastro if c["whatsapp"]),
+                "por_tipo": por("tipo"), "por_cidade": por("cidade"),
+                "contactos_do_whatsapp_desde_sempre": len(self.dados["contatos"])}
+
+    def aniversariantes(self, mes: str) -> dict:
+        lista = [c for c in self.dados.get("cadastro_clientes", []) if _normalizar(c["mes_aniversario"]) ==
+                 _normalizar(mes)]
+        return {"mes": mes, "total": len(lista), "clientes": lista[:100]}
 
     def registrar_cliente(self, telefone: str, nome: str) -> dict:
         nome = nome.strip()

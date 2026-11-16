@@ -117,10 +117,15 @@ class Motor:
             avisos.append(f"Agente ativo: {estado['agente']}.")
         momento = self.loja.relogio()
         if estado["contexto_em"] != momento.date().isoformat():
-            nome = self.loja.nome_cliente(telefone) or "ainda não informado"
+            ficha = self.loja.ficha_cliente(telefone)
             dia = DIAS_SEMANA[momento.weekday()]
+            cliente = f"nome {ficha.get('nome', 'ainda não informado')}"
+            if ficha.get("tipo"):
+                cliente += f"; no cadastro da CPAD como {ficha['tipo']}"
+            if ficha.get("cidade"):
+                cliente += f"; cidade {ficha['cidade']}"
             avisos.append(f"Contexto: agora é {dia}, {momento:%d/%m/%Y %H:%M} (hora de Moçambique). "
-                          f"Cliente: nome {nome}; WhatsApp {telefone}.")
+                          f"Cliente: {cliente}; WhatsApp {telefone}.")
             estado["contexto_em"] = momento.date().isoformat()
         avisos += estado["avisos_pendentes"]
         estado["avisos_pendentes"] = []

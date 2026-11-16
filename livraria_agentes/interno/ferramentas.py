@@ -125,6 +125,16 @@ FERRAMENTAS = [
     _ferramenta("financeiro_resumo",
                 "Entradas, saídas, saldo, totais por categoria e por forma de pagamento num período.",
                 {"inicio": DATA, "fim": DATA}),
+    # clientes
+    _ferramenta("clientes_buscar",
+                "Procura clientes no cadastro da CPAD por nome, telefone, bairro ou código, filtrando por tipo "
+                "(Cliente VIP, Pastor, Igreja, Missionário, Empresa / instituição, Revendedor, Livraria) e cidade.",
+                {"consulta": T, "tipo": T_NULO, "cidade": T_NULO}),
+    _ferramenta("clientes_resumo", "Totais do cadastro de clientes por tipo e cidade.", {}),
+    _ferramenta("clientes_aniversariantes", "Clientes que fazem anos num mês (ex.: Novembro).",
+                {"mes": {"type": "string", "enum": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                                                    "Julho", "Agosto", "Setembro", "Outubro", "Novembro",
+                                                    "Dezembro"]}}),
     # redes sociais
     _ferramenta("post_salvar",
                 "Guarda um rascunho de post para a equipe revisar e publicar. Nada é publicado automaticamente.",
@@ -258,6 +268,12 @@ def executar(ctx: Contexto, nome: str, e: dict) -> str:
         r = ctx.base.registrar_movimento({**e, "origem": "equipa"})
     elif nome == "financeiro_resumo":
         r = ctx.base.resumo_financeiro(*_periodo(e))
+    elif nome == "clientes_buscar":
+        r = ctx.loja.buscar_clientes(e["consulta"], e.get("tipo"), e.get("cidade"))
+    elif nome == "clientes_resumo":
+        r = ctx.loja.resumo_clientes()
+    elif nome == "clientes_aniversariantes":
+        r = ctx.loja.aniversariantes(e["mes"])
     elif nome == "post_salvar":
         r = ctx.base.salvar_post(e["rede"], e["texto"], e.get("sugestao_imagem"))
     elif nome == "posts_listar":
