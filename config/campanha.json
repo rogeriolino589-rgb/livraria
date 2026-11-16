@@ -1,7 +1,10 @@
 {
   "_ajuda": "Campanha progressiva. por_linha_por_dia: quantos contactos novos cada linha recebe por dia (comece baixo para não bloquear o número). paises_excluidos: países fora da campanha (ex.: \"Brasil\").",
   "por_linha_por_dia": 40,
-  "paises_excluidos": [],
+  "paises_excluidos": [
+    "Brasil",
+    "Uruguai"
+  ],
   "incluir_cadastro": true,
   "incluir_leads": true
 }

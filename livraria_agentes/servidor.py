@@ -122,7 +122,19 @@ def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret:
         if not esperada or not hmac.compare_digest(chave, esperada):
             raise HTTPException(status_code=403, detail="Chave inválida")
         campanha = Campanha(motor.loja, PASTA_ESTADO / "campanha")
-        return HTMLResponse(campanha.pagina(campanha.lote(), linha or None))
+        return HTMLResponse(campanha.pagina(campanha.lote(), linha or None, chave))
+
+    @app.get("/campanha/marcar", response_class=HTMLResponse)
+    def campanha_sem_whatsapp(chave: str = "", id: str = "") -> HTMLResponse:
+        """O vendedor marca um contacto cujo número não está no WhatsApp: sai da lista."""
+        from .campanha import Campanha
+        from .config import PASTA_ESTADO
+
+        esperada = os.environ.get("CAMPANHA_CHAVE", "")
+        if not esperada or not hmac.compare_digest(chave, esperada) or not id:
+            raise HTTPException(status_code=403, detail="Chave inválida")
+        Campanha(motor.loja, PASTA_ESTADO / "campanha").marcar_sem_whatsapp(id)
+        return HTMLResponse("<p style='font:18px system-ui'>✅ Retirado da lista. Pode fechar esta página.</p>")
 
     @app.get("/webhook")
     def verificar(request: Request) -> PlainTextResponse:

@@ -10,8 +10,8 @@ from urllib.parse import unquote
 
 import pytest
 
-from livraria_agentes.campanha import (Campanha, classificar, contactos, importar_leads, lingua_do_numero,
-                                       telefone_internacional)
+from livraria_agentes.campanha import (CONFIG_PADRAO, Campanha, classificar, contactos, importar_leads,
+                                       lingua_do_numero, telefone_internacional)
 from livraria_agentes.loja import Loja
 from livraria_agentes.motor import Motor
 from test_agentes import AGORA, ClaudeFalso, _msg, _texto
@@ -57,7 +57,7 @@ def test_classifica_e_encontra_o_numero():
 
 
 def test_cada_contacto_vai_para_a_linha_certa(loja):
-    por_id = {c["id"]: c for c in contactos(loja, LEADS)}
+    por_id = {c["id"]: c for c in contactos(loja, LEADS, CONFIG_PADRAO)}
     assert por_id["cliente-1"]["linha"] == "+258 86 504 8400"  # igreja do cadastro -> Damião
     assert por_id["cliente-3"]["linha"] == "+258 84 508 2787"  # revendedor -> Sérgio
     assert por_id["cliente-2"]["linha"] == "+258 84 468 9369"  # VIP -> retalho
@@ -69,11 +69,11 @@ def test_cada_contacto_vai_para_a_linha_certa(loja):
     assert {c["linha"] for c in internacional.values()} == {"+258 87 712 7070"}
     assert [internacional[i]["tipo"] for i in ("seed5-0", "seed4-0", "seed2-0")] == [
         "Igreja", "Empresa / instituição", "Cliente VIP"]
-    assert [c["id"] for c in contactos(loja, LEADS)][:3] == ["cliente-1", "cliente-2", "cliente-3"]
+    assert [c["id"] for c in contactos(loja, LEADS, CONFIG_PADRAO)][:3] == ["cliente-1", "cliente-2", "cliente-3"]
 
 
 def test_mensagem_na_lingua_do_pais_com_opcao_de_saida(loja):
-    por_id = {c["id"]: c for c in contactos(loja, LEADS)}
+    por_id = {c["id"]: c for c in contactos(loja, LEADS, CONFIG_PADRAO)}
     from livraria_agentes.campanha import link, mensagem
 
     assert mensagem(por_id["seed3-0"]).startswith("Paz do Senhor!") and "responda SAIR" in mensagem(por_id["seed3-0"])
@@ -166,3 +166,32 @@ def test_rotulos_com_siglas_de_grupos_ficam_e_vazios_saem():
     maus = ["", "   ", "🙏", "❤️❤️", "-"]
     assert all(parece_nome(r) for r in bons), [r for r in bons if not parece_nome(r)]
     assert not any(parece_nome(r) for r in maus), [r for r in maus if parece_nome(r)]
+
+
+def test_cadastro_sem_nomes_genericos_nem_numeros_de_central(loja):
+    loja.dados["cadastro_clientes"] += [
+        {"id_erp": "9", "nome": "CLIENTES DIVERSOS", "tipo": "Cliente VIP", "whatsapp": ["258849999999"]},
+        {"id_erp": "10", "nome": "Cliiente sem nome 1", "tipo": "Cliente VIP", "whatsapp": ["258849999998"]},
+    ] + [{"id_erp": f"c{i}", "nome": f"Cliente Real {i}", "tipo": "Cliente VIP", "whatsapp": ["258844948430"]}
+         for i in range(5)]  # central usada por 5 clientes
+    ids = [c["id"] for c in contactos(loja, [])]
+    assert ids == ["cliente-1", "cliente-2", "cliente-3"]
+
+
+def test_vendedor_marca_quem_nao_tem_whatsapp(loja, tmp_path):
+    campanha = Campanha(loja, tmp_path / "campanha")
+    lote = campanha.lote(date(2026, 11, 16))
+    assert "❌ Não tem WhatsApp" in campanha.pagina(lote, chave="segredo")
+    campanha.marcar_sem_whatsapp("cliente-2")
+    assert "cliente-2" not in [c["id"] for c in campanha.lista()]
+    assert campanha.progresso()["sem_whatsapp"] == 1
+
+
+def test_brasil_e_uruguai_fora_da_campanha(loja):
+    from livraria_agentes.campanha import configuracao
+
+    config = configuracao()
+    assert set(config["paises_excluidos"]) == {"Brasil", "Uruguai"} and config["por_linha_por_dia"] == 40
+    leads = LEADS + [{"id": "u1", "pa": "Uruguai", "org": "Iglesia", "numero": "59899123456"}]
+    paises = {c["pais"] for c in contactos(loja, leads, config)}
+    assert "Brasil" not in paises and "Uruguai" not in paises

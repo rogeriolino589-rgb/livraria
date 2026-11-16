@@ -266,6 +266,9 @@ def importar_leads(caminho: Path, destino: Path) -> dict:
     return {"lidos": len(brutos), "guardados": len(limpos), "eliminados": saiu}
 
 
+NOME_GENERICO = re.compile(r"\b(clientes? diversos|cl+i+ente sem nome|sem nome|consumidor final|balcao|anonimo)\b")
+
+
 def contactos(loja: Loja, leads: list[dict], config: dict | None = None) -> list[dict]:
     """Lista ordenada e sem repetidos: cadastro primeiro, depois leads de prioridade ALTA, MÉDIA e o resto."""
     config = config or configuracao()
@@ -282,8 +285,15 @@ def contactos(loja: Loja, leads: list[dict], config: dict | None = None) -> list
         saida.append(contacto)
 
     if config["incluir_cadastro"]:
-        for c in loja.dados.get("cadastro_clientes", []):
+        cadastro = [c for c in loja.dados.get("cadastro_clientes", []) if not NOME_GENERICO.search(_sem_acento(c["nome"]))]
+        usos: dict[str, int] = {}
+        for c in cadastro:
             for numero in c.get("whatsapp", [])[:1]:
+                usos[numero] = usos.get(numero, 0) + 1
+        for c in cadastro:
+            for numero in c.get("whatsapp", [])[:1]:
+                if usos[numero] > MAX_REGISTOS_POR_NUMERO:
+                    continue  # número de central, usado por vários clientes
                 tipo = c["tipo"] if c["tipo"] not in ("Cliente", "Pastor", "Missionário") else "Cliente VIP"
                 tipo = "Livraria" if tipo in ("Revendedor", "Pastor revendedor") else tipo
                 junta({"id": f"cliente-{c['id_erp']}", "origem": "cadastro", "nome": c["nome"], "tipo": tipo,
@@ -335,7 +345,15 @@ class Campanha:
 
     def lista(self) -> list[dict]:
         leads = json.loads(self.arq_leads.read_text(encoding="utf-8")) if self.arq_leads.exists() else []
-        return contactos(self.loja, leads)
+        sem_whatsapp = self._estado().get("sem_whatsapp", {})
+        return [c for c in contactos(self.loja, leads) if c["id"] not in sem_whatsapp]
+
+    def marcar_sem_whatsapp(self, contacto_id: str) -> dict:
+        """O vendedor abriu o link e o WhatsApp disse que o número não está registado: sai da lista."""
+        estado = self._estado()
+        estado.setdefault("sem_whatsapp", {})[contacto_id] = self.loja.relogio().isoformat(timespec="minutes")
+        self._salvar(estado)
+        return {"ok": True, "id": contacto_id}
 
     def lote(self, dia: date | None = None) -> dict:
         """Lote do dia: o seguinte da lista em cada linha (o mesmo se já foi gerado hoje)."""
@@ -373,9 +391,10 @@ class Campanha:
             p["faltam"] = falta
             p["dias_para_terminar"] = -(-falta // limite) if limite else None
         return {"por_linha_por_dia": limite, "linhas": por_linha,
-                "sairam_da_lista": len(self.loja.dados.get("optout", {}))}
+                "sairam_da_lista": len(self.loja.dados.get("optout", {})),
+                "sem_whatsapp": len(estado.get("sem_whatsapp", {}))}
 
-    def pagina(self, lote: dict, linha: str | None = None) -> str:
+    def pagina(self, lote: dict, linha: str | None = None, chave: str | None = None) -> str:
         """Página com os links do dia, para o vendedor tocar e enviar."""
         blocos = []
         for numero_linha, fila in lote["linhas"].items():
@@ -384,7 +403,9 @@ class Campanha:
             itens = "".join(
                 f'<li><b>{html.escape(c["nome"] or c.get("organizacao") or "Contacto")}</b> '
                 f'<small>{html.escape(c["tipo"])} · {html.escape(c["pais"])} · +{c["numero"]}</small><br>'
-                f'<a class="b" href="{html.escape(c["link"])}" target="_blank">Abrir no WhatsApp e enviar</a></li>'
+                f'<a class="b" href="{html.escape(c["link"])}" target="_blank">Abrir no WhatsApp e enviar</a>'
+                + (f' <a class="n" href="/campanha/marcar?chave={quote(chave)}&id={quote(c["id"])}" target="_blank">'
+                   '❌ Não tem WhatsApp</a>' if chave else "") + '</li>'
                 for c in fila)
             blocos.append(f"<h2>Linha {html.escape(numero_linha)} — {len(fila)} contacto(s)</h2><ol>{itens}</ol>")
         return ("<!doctype html><html lang='pt'><head><meta charset='utf-8'>"
@@ -392,7 +413,7 @@ class Campanha:
                 f"<title>Contactos de {lote['dia']}</title><style>body{{font:16px system-ui;margin:16px;"
                 "max-width:720px}}li{margin:12px 0}a.b{display:inline-block;margin-top:4px;padding:8px 12px;"
                 "background:#25d366;color:#04210f;border-radius:8px;text-decoration:none;font-weight:600}"
-                "small{color:#555}</style></head><body>"
+                "small{color:#555}a.n{margin-left:8px;color:#b00020;font-size:14px}</style></head><body>"
                 f"<h1>Contactos do dia {lote['dia']}</h1><p>Envie pela linha indicada (a linha corporativa do seu "
                 "setor). Toque no botão, confira a mensagem e envie. Quem responder SAIR sai da lista.</p>"
                 + ("".join(blocos) or "<p>Nada para enviar hoje.</p>") + "</body></html>")
