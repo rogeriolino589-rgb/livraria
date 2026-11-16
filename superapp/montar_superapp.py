@@ -27,7 +27,22 @@ for f in sorted(glob.glob(S+'/mapas_email/*_diario.txt')):
     pend.append({'data':dia,'d':open(f,encoding='utf-8').read(),'c':open(c,encoding='utf-8').read() if os.path.exists(c) else ''})
 troca(" let h='<div class=\"card\"><b>📥 Mapas do Eticadata — vendas do dia</b>",
  " const pe=etiPend().filter(x=>!D.mapas.some(m=>m.data===x.data));\n let h=(pe.length&&!etiT.d?'<div class=\"card\" style=\"border-color:var(--ac)\"><b>📧 Mapas recebidos por e-mail</b><p class=\"m\">Lidos do e-mail «Resumo de vendas diário» da loja. Carregue para conferir e gravar.</p>'+pe.map(x=>'<button class=\"b\" data-lb2=\"mep\" data-i=\"'+x.data+'\">📥 '+fdt(x.data)+'</button> ').join('')+'</div>':'')+'<div class=\"card\"><b>📥 Mapas do Eticadata — vendas do dia</b>")
-troca("let etiT={d:'',c:''};","let etiT={d:'',c:''};\nfunction etiPend(){try{return JSON.parse(document.getElementById('etiPend').textContent||'[]')}catch(e){return[]}}")
+AUTO="""// mapas do e-mail: gravados sozinhos ao abrir o superapp, só se o Diário e o Caixa baterem certo e o dia não tiver outras vendas lançadas
+async function etiAuto(){await init();if(!window.FIN)return;D.mapas=D.mapas||[];const feitos=[];
+ for(const x of etiPend()){if(D.mapas.some(m=>m.data===x.data)||!x.d||!x.c)continue;
+  let d,c;try{d=etiDiario(x.d);c=etiCaixa(x.c)}catch(e){continue}
+  if(!d||!c||!d.docs||!d.docs.length||etiConf(d,c).length)continue;
+  const dia=c.data||d.docs[0].data,F=await FIN.get();
+  if((F.mov||[]).some(m=>m.data===dia&&m.tipo==='E'&&String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('eti-')!==0&&String(m.id).indexOf('hist-')!==0))continue;
+  for(const m of (F.mov||[]).filter(m=>String(m.id).indexOf('eti-'+dia+'-')===0||String(m.id).indexOf('hist-'+dia+'-')===0))await FIN.delMov(m.id);
+  await FIN.addMany(Object.entries(c.mov).filter(([,v])=>v>0).map(([meio,v])=>({id:'eti-'+dia+'-'+meio.replace(/[^A-Za-z0-9]+/g,''),data:dia,tipo:'E',cat:'Vendas — balcão',
+   parte:'Eticadata · Mapa de Caixa'+(c.posto?' '+c.posto:''),fp:ETI_FP[meio]||meio,valor:v,nota:'Mapa de Caixa nº '+(c.abNum||'')+' · '+d.docs.length+' vendas · e-mail da loja'})));
+  const porVend={};d.docs.forEach(y=>porVend[y.vend]=(porVend[y.vend]||0)+y.tot);
+  D.mapas.push({data:dia,n:d.docs.length,tot:d.tot,desc:d.desc,fundo:c.fundo,posto:c.posto,abNum:c.abNum,mov:c.mov,porVend,imp:d.imp,
+   docs:d.docs.map(y=>[y.doc,y.vend,y.meio,y.tot]),em:new Date().toISOString(),fin:true,auto:true});feitos.push(fdt(dia))}
+ if(feitos.length){save();toast('Vendas do e-mail gravadas no Financeiro: '+feitos.join(', ')+'.');render()}}
+setTimeout(()=>etiAuto().catch(e=>console.warn('etiAuto',e)),1500);"""
+troca("let etiT={d:'',c:''};","let etiT={d:'',c:''};\nfunction etiPend(){try{return JSON.parse(document.getElementById('etiPend').textContent||'[]')}catch(e){return[]}}\n"+AUTO)
 troca(" if(a==='mex'){etiT={d:'',c:''};render();return}"," if(a==='mex'){etiT={d:'',c:''};render();return}\n if(a==='mep'){const x=etiPend().find(x=>x.data===b.dataset.i);if(x){etiT={d:x.d,c:x.c};render()}return}")
 # o mapa do dia substitui as entradas do histórico (Análise de Vendas) desse dia; não conta como duplicado
 troca("String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('eti-')!==0);","String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('eti-')!==0&&String(m.id).indexOf('hist-')!==0);")
