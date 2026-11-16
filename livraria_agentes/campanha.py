@@ -197,29 +197,15 @@ def _numero_whatsapp_comprovado(lead: dict) -> str | None:
 
 
 def parece_nome(rotulo: str) -> bool:
-    """O rótulo guardado no telemóvel parece nome de pessoa ou organização? Rejeita siglas ("SBT"), nomes de
-    país sozinhos ("Brasil"), utilizadores colados em minúsculas ("daladenizdeniz"), e-mails e rótulos que
-    começam por números ("95 Faof")."""
-    limpo = re.sub(r"[^\w\s.'-]", " ", str(rotulo or ""), flags=re.UNICODE).strip()
-    if not limpo or "@" in str(rotulo) or limpo[0].isdigit():
-        return False
-    palavras = [p for p in limpo.split() if re.search(r"[^\W\d_]{2,}", p)]
-    if not palavras:
-        return False
-    if len(palavras) == 1:
-        p = palavras[0]
-        if p.isupper() and len(p) <= 5:  # sigla
-            return False
-        if p.islower() and len(p) >= 8:  # utilizador colado
-            return False
-        if _sem_acento(p) in {_sem_acento(x) for x in INDICATIVOS}:  # só o nome de um país
-            return False
-    return True
+    """O rótulo guardado no telemóvel identifica o contacto? Siglas de grupos de WhatsApp ("SBT", "95 Faof"),
+    países e nomes contam (são contactos verdadeiros, guardados pela equipa); só não serve rótulo vazio ou feito
+    apenas de emojis e símbolos."""
+    return bool(re.search(r"\w", str(rotulo or ""), flags=re.UNICODE))
 
 
 def _nome_do_rotulo(lead: dict) -> str:
-    """Contactos da lista de WhatsApp da CPAD guardam o nome no rótulo (na nota de origem); só serve se parecer
-    nome de pessoa ou organização."""
+    """Contactos da lista de WhatsApp da CPAD guardam o nome (ou a sigla do grupo de WhatsApp de onde vieram) no
+    rótulo, na nota de origem."""
     achado = re.search(r"Rótulo salvo no WhatsApp[^:]*:\s*(.+)$", str(lead.get("obs") or ""))
     rotulo = achado.group(1).strip() if achado else ""
     return rotulo if parece_nome(rotulo) else ""

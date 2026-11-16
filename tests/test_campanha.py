@@ -158,12 +158,11 @@ def test_limpeza_antes_de_guardar():
     assert "25821326240" not in numeros and "555132761430" not in numeros
 
 
-def test_rotulos_que_nao_sao_nomes_ficam_de_fora():
+def test_rotulos_com_siglas_de_grupos_ficam_e_vazios_saem():
     from livraria_agentes.campanha import parece_nome
 
-    bons = ["Pastor Adler Silva - USA", "Irmã - Delaila Cheberte - Zâmbia/ Maputo", "Sandra", "Eva🥰",
-            "Irmão Moisés Balamala 87 MOÇAMBIQUE", "CADORE S LDA", "Exata Contabilidade", "Luizardo"]
-    maus = ["SBT", "BFC", "Brasil", "95 Faof", "1 Africa Do Sul AP", "daladenizdeniz", "fredericongunza@gmael.co",
-            "eliasmanuelchefelix", "", "🙏"]
+    bons = ["Pastor Adler Silva - USA", "Sandra", "Eva🥰", "SBT", "BFC", "95 Faof", "1 Africa Do Sul AP", "Brasil",
+            "daladenizdeniz", "Afcsg 4", "CADORE S LDA"]
+    maus = ["", "   ", "🙏", "❤️❤️", "-"]
     assert all(parece_nome(r) for r in bons), [r for r in bons if not parece_nome(r)]
     assert not any(parece_nome(r) for r in maus), [r for r in maus if parece_nome(r)]
