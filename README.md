@@ -156,8 +156,9 @@ ficam só na base do robô (fora do Git), e mensagens de marketing só para quem
 ## Descontos para instituições
 
 Igrejas, empresas/instituições, revendedores (incluindo pastores revendedores) e livrarias registados no
-cadastro, em compras a partir de **5.000 MT em produtos** (sem a taxa de entrega): **30% nos Livros CPAD e
-Bíblias CPAD** e **15% em todo o resto** (outras marcas e também Lições Bíblicas, CDs, DVDs e Harpa da CPAD).
+cadastro, em compras a partir de **5.000 MT em produtos** (sem a taxa de entrega): **30% nos Livros CPAD,
+Bíblias CPAD e Harpa Cristã**, **20% nas Lições Bíblicas** e **15% em todo o resto** (outras marcas, CDs, DVDs,
+brindes).
 Livro/Bíblia CPAD = categoria "CPAD - LIVROS"/"CPAD - BIBLIAS" no ERP, ou livro/Bíblia com ISBN/código de
 barras da CPAD (978-85-263, 7908234, 7898203). O sistema calcula sozinho no orçamento e no pedido; quem não está no
 cadastro como instituição fala com um atendente. Ajustável em `loja.json` → `config` → `desconto_instituicoes`.

@@ -33,10 +33,10 @@ def test_igreja_a_partir_de_5000_tem_30_e_15(loja):
     conta = loja.orcamento(IGREJA, [{"livro_id": "C1", "quantidade": 2}, {"livro_id": "C2", "quantidade": 1},
                                     {"livro_id": "O1", "quantidade": 1}], "envio")
     assert conta["subtotal_produtos"] == 5000.0  # chega a 5.000: já tem desconto
-    # Lição CPAD: 15% (só Livros e Bíblias CPAD têm 30%); Bíblia CPAD pelo código: 30%; outra editora: 15%
-    assert [l["desconto_pct"] for l in conta["itens"]] == [15, 30, 15]
-    assert conta["desconto"] == 300 + 600 + 150
-    assert conta["total"] == 5000 - 1050 + 250  # a taxa de entrega não tem desconto e não conta para o mínimo
+    # Lição: 20%; Bíblia CPAD (pelo código de barras): 30%; livro de outra editora: 15%
+    assert [l["desconto_pct"] for l in conta["itens"]] == [20, 30, 15]
+    assert conta["desconto"] == 400 + 600 + 150
+    assert conta["total"] == 5000 - 1150 + 250  # a taxa de entrega não tem desconto e não conta para o mínimo
 
 
 def test_abaixo_do_minimo_diz_quanto_falta(loja):
@@ -67,3 +67,12 @@ def test_livro_cpad_tem_30(loja):
     loja.dados["livros"] += converter([["C3", "", "PREGACAO EXPOSITIVA", "CPAD - LIVROS", 5000.0, 5]])
     conta = loja.orcamento(IGREJA, [{"livro_id": "C3", "quantidade": 1}], "retirada")
     assert conta["itens"][0]["desconto_pct"] == 30 and conta["total"] == 3500
+
+
+def test_harpa_crista_tem_30_e_cd_cpad_15(loja):
+    loja.dados["livros"] += converter([["H1", "", "HARPA CRISTA GRANDE", "HARPA CRISTA", 3000.0, 5],
+                                       ["D1", "", "CD LOUVORES", "CPAD - CDS", 2000.0, 5]])
+    conta = loja.orcamento(IGREJA, [{"livro_id": "H1", "quantidade": 1}, {"livro_id": "D1", "quantidade": 1}],
+                           "retirada")
+    assert [l["desconto_pct"] for l in conta["itens"]] == [30, 15] and conta["total"] == 2100 + 1700
+    assert all("_taxa" not in l for l in conta["itens"])
