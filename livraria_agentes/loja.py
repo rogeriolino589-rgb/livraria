@@ -39,8 +39,9 @@ FRETE_FIXO = 250.0  # meticais
 POLITICA_DESCONTO = {
     "tipos": ["Igreja", "Empresa / instituição", "Revendedor", "Pastor revendedor", "Livraria"],
     "minimo": 5000.0,
-    "taxa_cpad": 0.30,
-    "taxa_outras": 0.15,
+    "taxa_cpad": 0.30,  # só Livros CPAD e Bíblias CPAD
+    "generos_cpad_30": ["Livros", "Bíblias"],
+    "taxa_outras": 0.15,  # todos os outros produtos (outras marcas e restantes produtos CPAD)
 }
 # Prefixos de ISBN / código de barras de produtos da CPAD (para os que não estão numa categoria "CPAD -").
 PREFIXOS_CPAD = ("9788526", "9798526", "7908234", "7898203")
@@ -53,6 +54,11 @@ def meticais(valor: float) -> str:
 
 def eh_marca_cpad(livro: dict) -> bool:
     return (livro.get("marca") == "CPAD" or str(livro.get("isbn") or "").startswith(PREFIXOS_CPAD))
+
+
+def tem_desconto_cpad(livro: dict, regra: dict) -> bool:
+    """30% só para Livros CPAD e Bíblias CPAD; Lições, CDs, DVDs e Harpa ficam nos 15%."""
+    return eh_marca_cpad(livro) and livro.get("genero") in regra["generos_cpad_30"]
 
 
 class ErroLoja(Exception):
@@ -190,7 +196,7 @@ class Loja:
 
     def orcamento(self, telefone: str, itens: list[dict], entrega: str) -> dict:
         """Calcula o pedido com a política de descontos para igrejas, instituições, revendedores e livrarias:
-        com compras a partir do mínimo (5.000 MT em produtos), 30% nos produtos da marca CPAD e 15% nos outros."""
+        com compras a partir do mínimo (5.000 MT em produtos), 30% nos Livros e Bíblias CPAD e 15% em todo o resto."""
         if not itens:
             raise ErroLoja("O pedido precisa de pelo menos um produto.")
         if entrega not in ("retirada", "envio"):
@@ -209,7 +215,7 @@ class Loja:
             valor = round(livro["preco"] * qtd, 2)
             linhas.append({"livro_id": livro["id"], "titulo": livro["titulo"], "quantidade": qtd,
                            "preco_unitario": livro["preco"], "valor": valor,
-                           "marca_cpad": eh_marca_cpad(livro)})
+                           "marca_cpad": eh_marca_cpad(livro), "livro_ou_biblia_cpad": tem_desconto_cpad(livro, regra)})
             subtotal += valor
         subtotal = round(subtotal, 2)
         tipo = self.ficha_cliente(telefone).get("tipo")
@@ -217,17 +223,17 @@ class Loja:
         aplica = elegivel and subtotal >= regra["minimo"]
         desconto_total = 0.0
         for linha in linhas:
-            taxa = (regra["taxa_cpad"] if linha["marca_cpad"] else regra["taxa_outras"]) if aplica else 0.0
+            taxa = (regra["taxa_cpad"] if linha["livro_ou_biblia_cpad"] else regra["taxa_outras"]) if aplica else 0.0
             linha["desconto_pct"] = round(taxa * 100)
             linha["desconto"] = round(linha["valor"] * taxa, 2)
             linha["valor_final"] = round(linha["valor"] - linha["desconto"], 2)
             desconto_total += linha["desconto"]
         frete = FRETE_FIXO if entrega == "envio" else 0.0
         if aplica:
-            info = f"Desconto de instituição aplicado ({tipo}): 30% em produtos CPAD e 15% nos outros."
+            info = f"Desconto de instituição aplicado ({tipo}): 30% em Livros e Bíblias CPAD e 15% nos outros."
         elif elegivel:
             info = (f"{tipo}: faltam {meticais(regra['minimo'] - subtotal)} MT em produtos para ter 30% de desconto "
-                    "nos produtos CPAD e 15% nos outros.")
+                    "em Livros e Bíblias CPAD e 15% nos outros.")
         else:
             info = ("Sem desconto: o desconto é para igrejas, instituições, revendedores e livrarias registados no "
                     "cadastro da CPAD; se o cliente disser que é um deles, um atendente confirma.")

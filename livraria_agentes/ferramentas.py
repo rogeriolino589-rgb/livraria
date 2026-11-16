@@ -44,7 +44,7 @@ FERRAMENTAS = [
     _ferramenta("calcular_orcamento",
                 "Calcula o valor de uma compra sem criar o pedido: subtotal, desconto de instituição (se o cliente "
                 "for igreja, instituição, revendedor ou livraria do cadastro e a compra chegar a 5.000 MT: 30% em "
-                "produtos CPAD e 15% nos outros), taxa de entrega e total.",
+                "Livros e Bíblias CPAD e 15% em todo o resto), taxa de entrega e total.",
                 {"itens": {"type": "array", "items": {
                     "type": "object",
                     "properties": {"livro_id": TEXTO, "quantidade": {"type": "integer"}},
