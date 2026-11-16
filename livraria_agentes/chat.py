@@ -21,7 +21,10 @@ def main() -> None:
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
 
+    from .vendedores import Avisos
+
     loja, motor = abrir()
+    motor.avisos = Avisos(lambda numero, texto: print(f"   (aviso para o vendedor {numero}: {texto!r})"))
     agente = motor.carregar(args.telefone)["agente"]
     print(f"💬 {NOME_LOJA}: você é o cliente {args.telefone}. Comandos: /agente, /reiniciar, /sair\n")
     while True:

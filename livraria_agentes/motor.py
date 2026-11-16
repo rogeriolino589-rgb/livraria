@@ -43,11 +43,13 @@ class Resposta:
 
 
 class Motor:
-    def __init__(self, loja: Loja, pasta_conversas: Path, cliente: anthropic.Anthropic | None = None):
+    def __init__(self, loja: Loja, pasta_conversas: Path, cliente: anthropic.Anthropic | None = None,
+                 avisos=None):
         self.loja = loja
         self.pasta = Path(pasta_conversas)
         self.pasta.mkdir(parents=True, exist_ok=True)
         self._cliente = cliente
+        self.avisos = avisos  # vendedores.Avisos: avisa o vendedor da linha do cliente
 
     @property
     def cliente(self) -> anthropic.Anthropic:
@@ -232,4 +234,20 @@ class Motor:
             return f"Entrada inválida para {nome}: {erro}", True
         if nome == "chamar_humano":
             estado["aguardando_humano"] = True
+            self._avisar(estado["telefone"], "Cliente pede atendimento", f"Motivo: {entrada.get('motivo', '')}")
+        elif nome == "criar_pedido":
+            pedido = json.loads(saida)
+            self._avisar(estado["telefone"], f"Pedido novo {pedido['id']}",
+                         f"Total: {PAIS.dinheiro(pedido['total'], True)}"
+                         + (f" (desconto {PAIS.dinheiro(pedido['desconto'], True)})" if pedido.get("desconto") else "")
+                         + f" · {'entrega ao domicílio' if pedido['entrega'] == 'envio' else 'levantamento na loja'}"
+                         + " · aguarda pagamento")
         return saida, False
+
+    def _avisar(self, telefone: str, assunto: str, detalhe: str) -> None:
+        if self.avisos is None:
+            return
+        try:
+            self.avisos.avisar(self.loja, telefone, assunto, detalhe)
+        except Exception:
+            log.exception("Falha ao avisar o vendedor (%s)", assunto)

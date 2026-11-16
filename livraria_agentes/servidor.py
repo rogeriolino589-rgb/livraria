@@ -154,11 +154,15 @@ def main() -> None:
         raise SystemExit(f"Configure as variáveis de ambiente: {', '.join(faltando)}")
     from .interno import abrir_assistente, equipe_whatsapp
 
+    from .vendedores import Avisos
+
     loja, motor = abrir()
+    canal = CanalWhatsApp.do_ambiente()
+    motor.avisos = Avisos(canal.enviar, enviar_modelo=canal.enviar_modelo)  # avisa o vendedor da linha do cliente (config/vendedores.json)
     equipe = equipe_whatsapp()
     if equipe:
         log.info("Equipe com acesso ao assistente interno: %s", ", ".join(equipe.values()))
-    app = criar_app(motor, CanalWhatsApp.do_ambiente(), os.environ["WHATSAPP_VERIFY_TOKEN"],
+    app = criar_app(motor, canal, os.environ["WHATSAPP_VERIFY_TOKEN"],
                     os.environ["WHATSAPP_APP_SECRET"], abrir_assistente(loja) if equipe else None, equipe)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
 
