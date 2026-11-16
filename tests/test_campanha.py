@@ -17,15 +17,19 @@ from livraria_agentes.motor import Motor
 from test_agentes import AGORA, ClaudeFalso, _msg, _texto
 
 LEADS = [
-    {"id": "seed3-0", "pa": "Moçambique", "org": "Igreja Evangélica Assembleia de Deus da Matola", "t1": "84 111 2222", "pr": "ALTA"},
-    {"id": "seed3-1", "pa": "Moçambique", "org": "Papelaria Central", "tipo": "Papelaria", "t1": "+258 82 333 4444"},
-    {"id": "seed3-2", "pa": "Moçambique", "org": "Sr. António", "t1": "87 555 6666"},
-    {"id": "seed3-3", "pa": "Moçambique", "org": "Arquidiocese", "t1": "+258 21 326 240"},  # fixo: sem WhatsApp
-    {"id": "seed5-0", "pa": "Essuatíni", "org": "Mpolonjeni Alliance Church", "t1": "+268 7613 0566", "pr": "ALTA"},
+    {"id": "seed3-0", "pa": "Moçambique", "org": "Igreja Evangélica Assembleia de Deus da Matola", "t1": "84 111 2222",
+     "obs": "WhatsApp publicado", "pr": "ALTA"},
+    {"id": "seed3-1", "pa": "Moçambique", "org": "Papelaria Central", "tipo": "Papelaria",
+     "wa": "+258 82 333 4444"},
+    {"id": "seed3-2", "pa": "Moçambique", "org": "Sr. António", "lk": "https://wa.me/258875556666"},
+    {"id": "seed3-3", "pa": "Moçambique", "org": "Arquidiocese", "t1": "+258 21 326 240"},  # fixo, sem prova
+    {"id": "seed5-0", "pa": "Essuatíni", "org": "Mpolonjeni Alliance Church", "t1": "+268 7613 0566",
+     "obs": "Contacto geral · WhatsApp publicado", "pr": "ALTA"},
     {"id": "seed-0", "pa": "Brasil", "org": "Assembleia de Deus - Caxias", "t1": "(54) 3028-7252",
      "lk": "https://wa.me/5554997084703"},
-    {"id": "seed4-0", "pa": "África do Sul", "org": "Bible College of Southern Africa", "t1": "+27 82 000 1111"},
-    {"id": "seed2-0", "pa": "RD Congo", "org": "", "t1": "+243 81 234 5678", "tipo": "Contato WhatsApp CPAD"},
+    {"id": "seed4-0", "pa": "África do Sul", "org": "Bible College of Southern Africa", "wa": "+27 82 000 1111"},
+    {"id": "seed2-0", "pa": "RD Congo", "t1": "+243 81 234 5678", "tipo": "Contato WhatsApp CPAD",
+     "obs": "Origem: Lista de Clientes Oficial Global · Rótulo salvo no WhatsApp (não é nome de pessoa): Frère Jean"},
 ]
 
 
@@ -129,4 +133,37 @@ def test_importa_leads_da_pagina_do_erp(tmp_path):
     pagina.write_text(f'<script id="seed" type="text/plain">{bloco({"L": [LEADS[5]], "EV": []})}</script>'
                       f'<script id="seed2" type="text/plain">{bloco([LEADS[7]])}</script>'
                       f'<script id="seed8" type="text/plain">{bloco([["P1"]])}</script>', encoding="utf-8")
-    assert importar_leads(pagina, tmp_path / "leads.json") == {"leads": 2}
+    r = importar_leads(pagina, tmp_path / "leads.json")
+    assert r["lidos"] == 2 and r["guardados"] == 2
+    guardados = json.loads((tmp_path / "leads.json").read_text())
+    assert [g["nome"] for g in guardados] == ["Assembleia de Deus - Caxias", "Frère Jean"]
+
+
+def test_limpeza_antes_de_guardar():
+    from livraria_agentes.campanha import limpar_leads
+
+    partilhado = [{"id": f"x{i}", "pa": "Brasil", "org": f"AD cargo {i}", "lk": "https://wa.me/555132761430"}
+                  for i in range(5)]  # central partilhada por 5 registos
+    brutos = LEADS + partilhado + [
+        {"id": "f1", "pa": "Brasil", "org": "Pastor presidente", "tipo": "Função-alvo de prospecção",
+         "lk": "https://wa.me/5511999990000"},
+        {"id": "d1", "pa": "Moçambique", "org": "Igreja duplicada", "wa": "+258 82 333 4444"},  # repetido
+        {"id": "s1", "pa": "Moçambique", "wa": "+258 84 999 8888"},  # sem nome
+    ]
+    limpos, saiu = limpar_leads(brutos)
+    assert saiu == {"funcao_alvo": 1, "sem_whatsapp_comprovado": 1, "sem_nome": 1, "numero_partilhado": 5,
+                    "repetidos": 1}
+    numeros = [l["numero"] for l in limpos]
+    assert len(numeros) == len(set(numeros)) == 7
+    assert "25821326240" not in numeros and "555132761430" not in numeros
+
+
+def test_rotulos_que_nao_sao_nomes_ficam_de_fora():
+    from livraria_agentes.campanha import parece_nome
+
+    bons = ["Pastor Adler Silva - USA", "Irmã - Delaila Cheberte - Zâmbia/ Maputo", "Sandra", "Eva🥰",
+            "Irmão Moisés Balamala 87 MOÇAMBIQUE", "CADORE S LDA", "Exata Contabilidade", "Luizardo"]
+    maus = ["SBT", "BFC", "Brasil", "95 Faof", "1 Africa Do Sul AP", "daladenizdeniz", "fredericongunza@gmael.co",
+            "eliasmanuelchefelix", "", "🙏"]
+    assert all(parece_nome(r) for r in bons), [r for r in bons if not parece_nome(r)]
+    assert not any(parece_nome(r) for r in maus), [r for r in maus if parece_nome(r)]

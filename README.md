@@ -135,7 +135,10 @@ python -m livraria_agentes.campanha lote --html hoje.html    # lote do dia (o me
 python -m livraria_agentes.campanha progresso
 ```
 
-Cada dia sai o lote seguinte da lista (cadastro primeiro, depois leads de prioridade alta, média e o resto), sem
+Antes de guardar, os leads são limpos e só fica um contacto por número: saem as funções-alvo (cargos a
+identificar), os contactos sem WhatsApp comprovado na fonte (campo WhatsApp, link wa.me, lista de WhatsApp da
+CPAD ou nota "WhatsApp publicado"), os sem nome (ou com rótulo que não é nome: siglas, utilizadores, países),
+os números de central partilhados por mais de 3 registos e os repetidos. Cada dia sai o lote seguinte da lista (cadastro primeiro, depois leads de prioridade alta, média e o resto), sem
 repetir ninguém até completar. Cada contacto vai para a linha certa: em Moçambique, igrejas → Damião, empresas,
 instituições, livrarias e revendedores → Sérgio, os restantes (e leads sem tipo) como Cliente VIP → retalho; fora
 de Moçambique, linha internacional, mantendo a distinção igreja / instituição / VIP. Para cada um há um link

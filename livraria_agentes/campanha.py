@@ -175,21 +175,109 @@ def configuracao() -> dict:
 
 
 # ------------------------------------------------------------------ leads
+FUNCAO_ALVO = re.compile(r"funcao-alvo|nao representa pessoa|a identificar|a enriquecer")  # regra do ERP
+MAX_REGISTOS_POR_NUMERO = 3  # acima disto é número de central/diretório ("número partilhado" no ERP)
+
+
+def _numero_whatsapp_comprovado(lead: dict) -> str | None:
+    """Só aceita números com WhatsApp comprovado na fonte: campo WhatsApp, link wa.me, lista de contactos de
+    WhatsApp da CPAD ou nota "WhatsApp publicado". Telefones sem essa prova são ignorados."""
+    pais = lead.get("pa")
+    for campo in ("wa", "lk"):
+        numero = telefone_internacional(lead.get(campo), pais)
+        if numero:
+            return numero
+    prova = _sem_acento(f"{lead.get('tipo') or ''} {lead.get('obs') or ''}")
+    if "whatsapp" in prova:
+        for campo in ("t1", "t2"):
+            numero = telefone_internacional(lead.get(campo), pais)
+            if numero:
+                return numero
+    return None
+
+
+def parece_nome(rotulo: str) -> bool:
+    """O rótulo guardado no telemóvel parece nome de pessoa ou organização? Rejeita siglas ("SBT"), nomes de
+    país sozinhos ("Brasil"), utilizadores colados em minúsculas ("daladenizdeniz"), e-mails e rótulos que
+    começam por números ("95 Faof")."""
+    limpo = re.sub(r"[^\w\s.'-]", " ", str(rotulo or ""), flags=re.UNICODE).strip()
+    if not limpo or "@" in str(rotulo) or limpo[0].isdigit():
+        return False
+    palavras = [p for p in limpo.split() if re.search(r"[^\W\d_]{2,}", p)]
+    if not palavras:
+        return False
+    if len(palavras) == 1:
+        p = palavras[0]
+        if p.isupper() and len(p) <= 5:  # sigla
+            return False
+        if p.islower() and len(p) >= 8:  # utilizador colado
+            return False
+        if _sem_acento(p) in {_sem_acento(x) for x in INDICATIVOS}:  # só o nome de um país
+            return False
+    return True
+
+
+def _nome_do_rotulo(lead: dict) -> str:
+    """Contactos da lista de WhatsApp da CPAD guardam o nome no rótulo (na nota de origem); só serve se parecer
+    nome de pessoa ou organização."""
+    achado = re.search(r"Rótulo salvo no WhatsApp[^:]*:\s*(.+)$", str(lead.get("obs") or ""))
+    rotulo = achado.group(1).strip() if achado else ""
+    return rotulo if parece_nome(rotulo) else ""
+
+
+def limpar_leads(brutos: list[dict]) -> tuple[list[dict], dict]:
+    """Tira funções-alvo, contactos sem WhatsApp comprovado, sem nome, números de central (partilhados por mais
+    de 3 registos) e repetidos. Devolve os leads limpos (um por número) e a contagem do que saiu."""
+    saiu = {"funcao_alvo": 0, "sem_whatsapp_comprovado": 0, "sem_nome": 0, "numero_partilhado": 0, "repetidos": 0}
+    candidatos = []
+    for lead in brutos:
+        texto = _sem_acento(f"{lead.get('tipo') or ''} {lead.get('obs') or ''} {lead.get('org') or ''}")[:400]
+        if lead.get("tipo") == "A enriquecer" or FUNCAO_ALVO.search(texto):
+            saiu["funcao_alvo"] += 1
+            continue
+        numero = _numero_whatsapp_comprovado(lead)
+        if not numero:
+            saiu["sem_whatsapp_comprovado"] += 1
+            continue
+        nome = lead.get("nome") or lead.get("org") or _nome_do_rotulo(lead)
+        if not str(nome or "").strip():
+            saiu["sem_nome"] += 1
+            continue
+        candidatos.append({**lead, "numero": numero, "nome": nome})
+    contagem = {}
+    for c in candidatos:
+        contagem[c["numero"]] = contagem.get(c["numero"], 0) + 1
+    limpos, vistos = [], set()
+    for c in sorted(candidatos, key=lambda c: (not c.get("nome"), c["id"])):
+        if contagem[c["numero"]] > MAX_REGISTOS_POR_NUMERO:
+            saiu["numero_partilhado"] += 1
+            continue
+        if c["numero"] in vistos:
+            saiu["repetidos"] += 1
+            continue
+        vistos.add(c["numero"])
+        limpos.append(c)
+    return limpos, saiu
+
+
 def importar_leads(caminho: Path, destino: Path) -> dict:
-    """Lê as listas do Caçador de leads guardadas na página do ERP (blocos seed, seed2...seed7)."""
+    """Lê as listas do Caçador de leads guardadas na página do ERP (blocos seed, seed2...seed7), limpa-as
+    e guarda só os contactos com WhatsApp comprovado, um por número."""
     texto = Path(caminho).read_text(encoding="utf-8", errors="replace")
-    leads = []
+    brutos = []
     for bloco, dados in re.findall(r'<script id="(seed\d?)" type="text/plain">([^<]+)</script>', texto):
         if bloco in ("seed8", "seed9"):
             continue  # produtos e clientes
         conteudo = json.loads(gzip.decompress(base64.b64decode(dados)).decode("utf-8"))
         lista = conteudo.get("L", []) if isinstance(conteudo, dict) else conteudo
         for i, lead in enumerate(lista):
-            leads.append({**{k: lead.get(k) for k in ("pa", "org", "nome", "cargo", "tipo", "den", "ent", "t1",
-                                                      "t2", "wa", "lk", "pr", "ci")}, "id": f"{bloco}-{i}"})
+            brutos.append({**{k: lead.get(k) for k in ("pa", "org", "nome", "cargo", "tipo", "den", "ent", "t1",
+                                                       "t2", "wa", "lk", "pr", "ci", "obs")}, "id": f"{bloco}-{i}"})
+    limpos, saiu = limpar_leads(brutos)
     Path(destino).parent.mkdir(parents=True, exist_ok=True)
-    Path(destino).write_text(json.dumps(leads, ensure_ascii=False), encoding="utf-8")
-    return {"leads": len(leads)}
+    Path(destino).write_text(json.dumps([{k: v for k, v in l.items() if k != "obs"} for l in limpos],
+                                        ensure_ascii=False), encoding="utf-8")
+    return {"lidos": len(brutos), "guardados": len(limpos), "eliminados": saiu}
 
 
 def contactos(loja: Loja, leads: list[dict], config: dict | None = None) -> list[dict]:
@@ -219,11 +307,7 @@ def contactos(loja: Loja, leads: list[dict], config: dict | None = None) -> list
         for lead in sorted(leads, key=lambda l: ordem.get(str(l.get("pr") or "").upper(), 2)):
             if _sem_acento(lead.get("pa")) in excluidos:
                 continue
-            numero = None
-            for campo in ("wa", "lk", "t1", "t2"):
-                numero = telefone_internacional(lead.get(campo), lead.get("pa"))
-                if numero:
-                    break
+            numero = lead.get("numero") or _numero_whatsapp_comprovado(lead)
             if not numero:
                 continue
             tipo = classificar(lead.get("org"), lead.get("cargo"), lead.get("tipo"), lead.get("den"),
