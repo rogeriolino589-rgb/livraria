@@ -11,7 +11,7 @@ números pessoais), por isso o aviso vai para o WhatsApp corporativo da linha:
 
 Se o robô responder pelo mesmo número da linha (coexistência da app WhatsApp Business com a API), o vendedor já
 vê a conversa na app e o aviso por mensagem não é enviado (um número não manda mensagem a si próprio): fica a
-tarefa. Indique o número do robô em WHATSAPP_NUMERO_ROBO para o sistema saber.
+tarefa. As linhas em que o robô atende vêm de linhas_do_robo no perfil do país (ou WHATSAPP_NUMERO_ROBO).
 
 A linha de cada tipo de cliente vem de `contactos_por_tipo` no perfil do país.
 """
@@ -40,8 +40,11 @@ def carregar(arquivo: Path | None = None) -> dict[str, dict]:
 
 
 def numeros_do_robo() -> set[str]:
-    """Números (só dígitos) pelos quais o robô envia mensagens: WHATSAPP_NUMERO_ROBO, separados por vírgula."""
-    return {re.sub(r"\D", "", n) for n in os.environ.get("WHATSAPP_NUMERO_ROBO", "").split(",") if n.strip()}
+    """Números (só dígitos) em que o robô atende: WHATSAPP_NUMERO_ROBO (separados por vírgula) ou, por padrão,
+    as linhas corporativas do perfil do país (linhas_do_robo)."""
+    origem = os.environ.get("WHATSAPP_NUMERO_ROBO")
+    numeros = origem.split(",") if origem is not None else PAIS.linhas_do_robo
+    return {re.sub(r"\D", "", n) for n in numeros if n.strip()}
 
 
 def linha_do_tipo(tipo: str | None) -> str | None:

@@ -87,5 +87,12 @@
       "Cliente",
       "sem cadastro"
     ]
-  }
+  },
+  "linhas_do_robo": [
+    "+258 86 504 8400",
+    "+258 84 468 9369",
+    "+258 84 508 2787",
+    "+258 87 712 7070"
+  ],
+  "_linhas_do_robo": "Linhas corporativas em que o robô atende (coexistência com a app WhatsApp Business dos vendedores)."
 }

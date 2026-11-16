@@ -136,3 +136,16 @@ def test_robo_na_mesma_linha_nao_manda_mensagem_a_si_proprio(loja, monkeypatch):
     r = Avisos(lambda n, t: enviados.append(n), vendedores).avisar(loja, IGREJA, "Pedido novo PED-1", "x")
     assert enviados == [] and "mesma linha" in r["aviso"]
     assert loja.listar_tarefas("Damião Sebastião Cau", True)  # a tarefa fica
+
+
+def test_por_padrao_o_robo_esta_nas_linhas_corporativas(loja, monkeypatch):
+    """Opção 1: o robô atende pelas linhas corporativas; o vendedor vê a conversa na app e recebe a tarefa."""
+    from livraria_agentes.vendedores import numeros_do_robo
+
+    monkeypatch.delenv("WHATSAPP_NUMERO_ROBO", raising=False)
+    assert {"258865048400", "258845082787", "258844689369", "258877127070"} <= numeros_do_robo()
+    enviados = []
+    vendedores = carregar()
+    r = Avisos(lambda n, t: enviados.append(n), vendedores).avisar(loja, IGREJA, "Cliente pede atendimento", "x")
+    assert enviados == [] and r["vendedor"] == "Damião Sebastião Cau"
+    assert loja.listar_tarefas("Damião Sebastião Cau", True)

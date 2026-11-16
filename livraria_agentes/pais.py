@@ -54,6 +54,7 @@ class Pais:
     conversao_precos: dict | None = None  # {"de": "MZN", "fator": 0.0, "arredondar": 1}
     endereco: str = ""
     contactos: str = ""  # telefones / WhatsApp da loja
+    linhas_do_robo: list[str] = field(default_factory=list)  # linhas corporativas em que o robô atende
     contactos_por_tipo: dict = field(default_factory=dict)  # {"+258 ...": ["Igreja", "Pastor", ...]}
     email: str = ""
     catalogo_url: str = ""
