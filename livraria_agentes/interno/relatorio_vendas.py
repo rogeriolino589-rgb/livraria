@@ -319,7 +319,10 @@ def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_ven
     for r in dados["datas"].values():
         datas.update(r["datas"])
     vendas = montar_vendas(dados, nome, datas)
-    dia = collections.defaultdict(lambda: [0, 0.0, 0.0, 0.0, 0.0])
+    # por dia e vendedor: docs, vendas, varejo, atacado, sem tipo, e o atacado repartido em igrejas,
+    # livrarias/revendedores e empresas/instituições (para as categorias do Financeiro)
+    dia = collections.defaultdict(lambda: [0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    seg_idx = {"Igrejas": 5, "Livrarias e revendedores": 6, "Empresas e instituições": 7}
     for d in vendas:
         if not d["data"]:
             continue
@@ -329,6 +332,8 @@ def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_ven
             g[1] += d["liquido"]
         if d["canal"]:
             g[{"Varejo": 2, "Atacado": 3}.get(d["canal"], 4)] += d["liquido"]
+            if d["canal"] == "Atacado":
+                g[seg_idx[segmento(d["tipo_cliente"])]] += d["liquido"]
     zonas = collections.defaultdict(lambda: [0.0, 0.0, 0.0])
     for erp, z in dados["zonas"].items():
         for x in z["registos"]:
@@ -351,7 +356,10 @@ def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_ven
     saida_dados = {
         "gerado": date.today().isoformat(),
         "fonte": "Eticadata ERP19 + ERP22 — Análise de Vendas (valores sem IVA, inclui faturas)",
-        "dias": [[k[0], k[1], k[2], g[0], r2(g[1]), r2(g[2]), r2(g[3]), r2(g[4])] for k, g in sorted(dia.items())],
+        "dias": [[k[0], k[1], k[2], g[0], r2(g[1]), r2(g[2]), r2(g[3]), r2(g[4]), r2(g[5]), r2(g[6]), r2(g[7])]
+                 for k, g in sorted(dia.items())],
+        "colunas_dias": ["data", "sistema", "vendedor", "docs", "vendas", "varejo", "atacado", "sem_tipo", "igrejas",
+                         "livrarias_revendedores", "empresas_instituicoes"],
         "zonas": [[*k, r2(v[0]), r2(v[1]), r2(v[2])] for k, v in sorted(zonas.items())],
         "tipos": [[k[0], k[1], canal(k[1]), r2(v[0]), round(v[1])] for k, v in sorted(tipos.items(), key=lambda i: -i[1][0])],
         "artigos": [[k, a[0], round(a[1]), r2(a[2]), len(a[3])]

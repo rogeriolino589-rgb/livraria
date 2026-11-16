@@ -17,7 +17,7 @@ function R_hv(){const H=hvDados();if(!H.dias.length)return '<div class="card"><b
  const zm=new Map();H.zonas.filter(z=>!hvS.vend||z[1]===hvS.vend).forEach(z=>{const g=zm.get(z[2])||[0,0,0];g[0]+=z[3];g[1]+=z[4];g[2]+=z[5];zm.set(z[2],g)});
  const zt=[...zm.values()].reduce((s,g)=>s+g[0]+g[1]+g[2],0);
  return '<div class="card"><b>📊 Histórico de vendas — Eticadata ERP19 + ERP22</b><p class="m">'+esc(H.fonte||'')+'. Dados até '+fdt(H.dias[H.dias.length-1][0])+' (atualizado em '+fdt(H.gerado)+'). Varejo = Cliente, Cliente VIP, Pastor, Missionários · Atacado = Livrarias, Igrejas, Revendedores, Pastor Revendedor, Empresas/Instituições.</p>'+
-  '<div class="row"><label class="m">Ano <select data-hv="ano"><option value="">Todos (2016–hoje)</option>'+anos.map(a=>'<option'+(a===hvS.ano?' selected':'')+'>'+a+'</option>').join('')+'</select></label><label class="m">Vendedor <select data-hv="vend"><option value="">Todos</option>'+vends.map(v=>'<option'+(v===hvS.vend?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label><button data-lb2="hvx">⬇ Excel</button></div>'+
+  '<div class="row"><label class="m">Ano <select data-hv="ano"><option value="">Todos (2016–hoje)</option>'+anos.map(a=>'<option'+(a===hvS.ano?' selected':'')+'>'+a+'</option>').join('')+'</select></label><label class="m">Vendedor <select data-hv="vend"><option value="">Todos</option>'+vends.map(v=>'<option'+(v===hvS.vend?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label><button data-lb2="hvx">⬇ Excel</button><button class="p" data-lb2="hvf">💾 Lançar entradas no Financeiro</button><button data-lb2="hvr" title="Retirar do Financeiro as entradas lançadas a partir do histórico">↩ Retirar</button></div>'+
   '<div class="k">'+kc('Vendas',hvM2(T.v),'pos')+kc('Documentos de venda',T.n.toLocaleString('pt-PT'))+kc('Ticket médio',T.n?hvM2(T.v/T.n):'—')+kc('Varejo',hvPc(T.va,tt))+kc('Atacado',hvPc(T.at,tt))+kc('Sem tipo',hvPc(T.nd,tt))+'</div></div>'+
   '<div class="card"><b>'+(hvS.ano?'Por mês de '+hvS.ano:'Por ano')+'</b><div class="tw"><table>'+hvCab(hvS.ano?'Mês':'Ano')+[...porPer.entries()].sort().map(([k,g])=>hvLinha(k,g)).join('')+'</table></div></div>'+
   '<div class="card"><b>Por vendedor'+(hvS.ano?' em '+hvS.ano:'')+'</b><div class="tw"><table>'+hvCab('Vendedor')+[...porV.entries()].sort((a,b)=>b[1].v-a[1].v).map(([k,g])=>hvLinha(k,g)).join('')+'</table></div></div>'+
@@ -80,3 +80,21 @@ let jvT=[],jvCtl=null,jvSample;
    const msg={not_granted:'O Roger precisa da sua autorização para usar o Claude.',sampling_disabled:'O Claude não está disponível nesta conta.',rate_limited:'Muitos pedidos seguidos — tente daqui a pouco.',tools_unavailable:'Esta vista não permite que o Roger consulte os dados.',cancelled:''}[x&&x.code];
    if(msg!=='')add('a m',msg||'Não foi possível responder agora. Tente de novo.');jvT.pop()}
   finally{jvCtl=null;S.disabled=false;Stop.hidden=true;I.focus()}}})();
+// ---- Lançar o histórico como entradas no Financeiro (todos os anos; salta dias que já têm vendas lançadas)
+const HV_FP='Histórico Eticadata';
+function hvEntradas(){const dias={};hvDados().dias.forEach(r=>{const g=dias[r[0]]||(dias[r[0]]={b:0,r:0,i:0,n:0});g.b+=r[5]+r[7];g.r+=(r[9]||0);g.i+=(r[8]||0)+(r[10]||0);g.n+=r[3]});return dias}
+async function hvLancarFinanceiro(){if(!window.FIN){toast('Financeiro indisponível.',1);return}
+ const F=await FIN.get(),ja=new Set((F.mov||[]).filter(m=>m.tipo==='E'&&String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('hist-')!==0).map(m=>m.data));
+ const anosOreate=new Set((F.mov||[]).filter(m=>String(m.nota||'').indexOf('Oreate')===0).map(m=>String(m.data).slice(0,4)));
+ const dias=hvEntradas(),novas=[];let saltados=0,tot=0;
+ for(const [d,g] of Object.entries(dias).sort()){if(ja.has(d)||anosOreate.has(d.slice(0,4))){saltados++;continue}
+  let b=g.b,r=g.r,i=g.i;if(r<0){b+=r;r=0}if(i<0){b+=i;i=0}
+  [['b','Vendas — balcão',b],['r','Vendas — revendedores',r],['i','Vendas — igrejas e instituições',i]].forEach(([k,cat,v])=>{v=Math.round(v*100)/100;if(v>0){novas.push({id:'hist-'+d+'-'+k,data:d,tipo:'E',cat,parte:'Eticadata — Análise de Vendas',fp:HV_FP,valor:v,nota:'Histórico Eticadata · sem IVA · '+g.n+' docs · forma de pagamento a confirmar (Oreate)'});tot+=v}})}
+ const antigos=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')===0).length;
+ if(!confirm('Lançar '+novas.length.toLocaleString('pt-PT')+' entradas de vendas no Financeiro ('+Object.keys(dias).length.toLocaleString('pt-PT')+' dias de 2016 a hoje, '+hvM2(tot)+').\n\n'+saltados+' dias ficam de fora porque já têm vendas lançadas (os anos importados do Oreate, como 2025, ficam inteiros como estão).'+(antigos?'\n'+antigos+' lançamentos anteriores do histórico serão substituídos.':'')+'\n\nAs entradas aparecem em Vendas, Faturamento, Metas e relatórios. Não mexem no saldo de caixa e bancos até haver a forma de pagamento.'))return;
+ F.mov=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')!==0);await FIN.addMany(novas);
+ toast(novas.length.toLocaleString('pt-PT')+' entradas lançadas no Financeiro.');render()}
+async function hvRetirarFinanceiro(){if(!window.FIN)return;const F=await FIN.get(),n=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')===0).length;
+ if(!n){toast('Não há entradas do histórico no Financeiro.');return}if(!confirm('Retirar as '+n+' entradas do histórico do Financeiro?'))return;
+ F.mov=F.mov.filter(m=>String(m.id).indexOf('hist-')!==0);await FIN.addMany([]);toast('Entradas do histórico retiradas.');render()}
+document.addEventListener('click',e=>{const b=e.target.closest('#liv [data-lb2]');if(!b)return;if(b.dataset.lb2==='hvf')hvLancarFinanceiro();if(b.dataset.lb2==='hvr')hvRetirarFinanceiro()});
