@@ -131,6 +131,17 @@ reconhecidas, copie `config/erps.exemplo.json` para `config/erps.json` e escreva
 | `ARQUIVO_DOCUMENTOS` | Pasta onde os documentos copiados dos e-mails são guardados |
 | `LIVRARIA_FUSO` | Fuso horário, ex.: `Africa/Maputo` (padrão) |
 
+## Catálogo real da CPAD
+
+```bash
+python -m livraria_agentes.importar_catalogo "CPAD ERP Moçambique — Livraria.html"   # ou produtos.xlsx / .csv
+```
+
+Lê os 21.813 produtos do ERP da livraria (código, ISBN, título, categoria, preço em MT e stock) e substitui
+o catálogo de exemplo. Produtos sem preço não são oferecidos a clientes. A busca ignora acentos e
+maiúsculas ("bíblia" encontra "BIBLIA"). Alterações feitas dentro da página do ERP ficam só no navegador
+onde foram feitas: para preços e stock atualizados, importe uma exportação recente em planilha.
+
 ## O dia a dia da loja (os 7 trabalhos)
 
 | Trabalho | Quem faz |

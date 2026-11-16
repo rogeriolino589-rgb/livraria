@@ -15,6 +15,14 @@ from .email_imap import CaixaIMAP
 T = {"type": "string"}
 T_NULO = {"type": ["string", "null"]}
 DATA = {"type": "string", "description": "Data no formato AAAA-MM-DD."}
+# Categorias usadas no controlo financeiro da CPAD Moçambique (as mesmas do ERP da livraria).
+CATEGORIAS_ENTRADA = ["Vendas — balcão", "Vendas — revendedores", "Vendas — igrejas e instituições",
+                      "Vendas — online", "Outras receitas"]
+CATEGORIAS_SAIDA = ["Compras de mercadoria (CPAD Brasil)", "Pagamento ao estrangeiro (CPAD Brasil)",
+                    "Compras locais de mercadoria", "Autores nacionais", "Frete e desembaraço", "Transporte de carga",
+                    "Serviços aduaneiros", "Salários", "INSS", "IRPS", "IRPC", "IVA", "Outros impostos",
+                    "Renda da loja", "Comissões bancárias", "Taxa de pagamento", "Serviços contabilísticos",
+                    "Serviços de informática", "Segurança", "Devoluções a clientes", "Outras despesas"]
 FORMAS_PAGAMENTO = ["mpesa", "emola", "transferencia", "cartao", "numerario", "outra"]
 CONFIRMADO = {"type": "boolean",
               "description": "true só se alguém da equipe pediu esta ação na conversa e confirmou. "
@@ -109,8 +117,9 @@ FERRAMENTAS = [
                 "Regista uma entrada ou saída de dinheiro da loja (venda ao balcão, compra a fornecedor, renda, "
                 "salários, transporte...).",
                 {"data": DATA, "tipo": {"type": "string", "enum": ["entrada", "saida"]}, "valor": {"type": "number"},
-                 "categoria": {**T, "description": "Ex.: vendas loja, vendas WhatsApp, fornecedores, renda, salários, "
-                                                   "transporte, água e luz, impostos, outros."},
+                 "categoria": {**T, "description": "Use as categorias do ERP da CPAD. Entradas: "
+                                                   + "; ".join(CATEGORIAS_ENTRADA) + ". Saídas (principais): "
+                                                   + "; ".join(CATEGORIAS_SAIDA) + "."},
                  "descricao": T, "forma_pagamento": {"type": ["string", "null"], "enum": [*FORMAS_PAGAMENTO, None]},
                  "referencia": T_NULO, "confirmado_pela_equipe": CONFIRMADO}),
     _ferramenta("financeiro_resumo",
@@ -217,7 +226,7 @@ def executar(ctx: Contexto, nome: str, e: dict) -> str:
     elif nome == "estoque_baixo":
         r = ctx.loja.estoque_baixo(int(e["limite"]))
     elif nome == "livros_buscar":
-        r = ctx.loja.buscar_livros(e["consulta"], e.get("genero"), e.get("preco_max"))
+        r = ctx.loja.buscar_livros(e["consulta"], e.get("genero"), e.get("preco_max"), incluir_sem_preco=True)
     elif nome == "livro_cadastrar":
         _exige_confirmacao(e)
         r = ctx.loja.cadastrar_livro(e["titulo"], e["autor"], e["genero"], float(e["preco"]), int(e["estoque"]),
@@ -231,7 +240,7 @@ def executar(ctx: Contexto, nome: str, e: dict) -> str:
         pedido = r["pedido"]
         r["financeiro"] = ctx.base.registrar_movimento({
             "data": pedido["pagamento"]["confirmado_em"][:10], "tipo": "entrada", "valor": pedido["total"],
-            "categoria": "vendas WhatsApp", "descricao": f"Pedido {pedido['id']}",
+            "categoria": "Vendas — online", "descricao": f"Pedido {pedido['id']} (WhatsApp)",
             "forma_pagamento": e["forma_pagamento"], "referencia": e.get("referencia"), "origem": "pedido"})
     elif nome == "pedido_atualizar_estado":
         _exige_confirmacao(e)

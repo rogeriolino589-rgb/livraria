@@ -8,10 +8,12 @@ agendamentos de outra pessoa, mesmo que peça.
 from __future__ import annotations
 
 import json
+import re
 import os
 import secrets
 import shutil
 import threading
+import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -34,6 +36,15 @@ FRETE_FIXO = 250.0  # meticais
 
 class ErroLoja(Exception):
     """Erro de regra de negócio, com mensagem para o agente repassar."""
+
+
+PALAVRAS_VAZIAS = {"livro", "livros", "para", "com", "uma", "quero", "tem", "tens", "voces", "sobre", "dos", "das",
+                   "que", "por", "preco", "quanto", "custa"}
+
+
+def _normalizar(texto: str) -> str:
+    sem_acento = unicodedata.normalize("NFKD", str(texto)).encode("ascii", "ignore").decode()
+    return sem_acento.lower()
 
 
 def agora() -> datetime:
@@ -89,23 +100,32 @@ class Loja:
         return {"ok": True, "nome": nome}
 
     # ------------------------------------------------------------- catálogo
-    def buscar_livros(self, consulta: str, genero: str | None, preco_max: float | None) -> list[dict]:
-        termos = [t for t in consulta.lower().split() if len(t) > 2]
+    def buscar_livros(self, consulta: str, genero: str | None, preco_max: float | None,
+                      incluir_sem_preco: bool = False) -> list[dict]:
+        """Busca sem diferenciar acentos nem maiúsculas ("bíblia" acha "BIBLIA"). Produtos sem preço
+        (preço 0 no sistema) não aparecem para clientes."""
+        termos = [t for t in re.findall(r"[a-z0-9]+", _normalizar(consulta))
+                  if len(t) > 2 and t not in PALAVRAS_VAZIAS]
+        genero_n = _normalizar(genero or "")
         achados = []
         for livro in self.dados["livros"]:
-            if genero and genero.lower() not in livro["genero"].lower():
+            if not incluir_sem_preco and not livro.get("preco"):
+                continue
+            if genero_n and genero_n not in _normalizar(livro.get("genero", "")):
                 continue
             if preco_max is not None and livro["preco"] > preco_max:
                 continue
-            texto = " ".join([livro["titulo"], livro["autor"], livro["genero"], livro["sinopse"]]).lower()
+            texto = _normalizar(" ".join(str(livro.get(c) or "") for c in
+                                         ("titulo", "autor", "genero", "sinopse", "isbn", "id")))
             pontos = sum(1 for t in termos if t in texto)
             if termos and pontos == 0:
                 continue
             achados.append((pontos, livro))
-        achados.sort(key=lambda par: (-par[0], par[1]["titulo"]))
+        achados.sort(key=lambda par: (-par[0], par[1].get("estoque", 0) <= 0, par[1]["titulo"]))
         return [
-            {k: livro[k] for k in ("id", "titulo", "autor", "genero", "preco", "estoque")}
-            for _, livro in achados[:8]
+            {k: livro.get(k) for k in ("id", "titulo", "autor", "genero", "preco", "estoque", "isbn")
+             if livro.get(k) not in (None, "")}
+            for _, livro in achados[:10]
         ]
 
     def detalhes_livro(self, livro_id: str) -> dict:
@@ -126,6 +146,8 @@ class Loja:
                 qtd = int(item["quantidade"])
                 if qtd < 1:
                     raise ErroLoja("Quantidade deve ser pelo menos 1.")
+                if not livro.get("preco"):
+                    raise ErroLoja(f"'{livro['titulo']}' está sem preço no sistema; chame um atendente.")
                 if livro["estoque"] < qtd:
                     raise ErroLoja(f"Só há {livro['estoque']} unidade(s) de '{livro['titulo']}' em estoque.")
                 linhas.append({"livro_id": livro["id"], "titulo": livro["titulo"], "quantidade": qtd,
@@ -326,8 +348,12 @@ class Loja:
 
     # ------------------------------------------- funções da equipe (assistente interno)
     def estoque_baixo(self, limite: int) -> list[dict]:
-        return sorted(({k: l[k] for k in ("id", "titulo", "autor", "estoque", "preco")}
-                       for l in self.dados["livros"] if l["estoque"] <= limite), key=lambda l: l["estoque"])
+        """Produtos à venda (com preço) com stock no limite ou abaixo; no máximo 60, os mais vendáveis primeiro."""
+        baixos = [{k: l.get(k) for k in ("id", "titulo", "genero", "estoque", "preco")}
+                  for l in self.dados["livros"] if l.get("preco") and l["estoque"] <= limite]
+        baixos.sort(key=lambda l: (l["estoque"], -l["preco"]))
+        return baixos[:60] + ([{"aviso": f"Mais {len(baixos) - 60} produto(s) na mesma situação."}]
+                              if len(baixos) > 60 else [])
 
     def cadastrar_livro(self, titulo: str, autor: str, genero: str, preco: float, estoque: int,
                         sinopse: str) -> dict:
@@ -337,8 +363,8 @@ class Loja:
             if any(l["titulo"].lower() == titulo.lower() and l["autor"].lower() == autor.lower()
                    for l in self.dados["livros"]):
                 raise ErroLoja("Esse livro já está no catálogo; use ajustar_estoque.")
-            numero = max((int(l["id"][1:]) for l in self.dados["livros"]), default=0) + 1
-            livro = {"id": f"L{numero:03d}", "titulo": titulo, "autor": autor, "genero": genero,
+            numero = 1 + sum(1 for l in self.dados["livros"] if str(l["id"]).startswith("NOVO-"))
+            livro = {"id": f"NOVO-{numero:04d}", "titulo": titulo, "autor": autor, "genero": genero,
                      "preco": round(preco, 2), "estoque": estoque, "sinopse": sinopse}
             self.dados["livros"].append(livro)
             self.salvar()
