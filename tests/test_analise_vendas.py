@@ -71,3 +71,18 @@ def test_artigos_e_datas():
     r = ler_datas_linhas([["V/DIN", "2025-000001", "05/11/2025", 3.0, 1600.0, -100.0, 1500.0],
                           ["Total: ", 3.0, 1600.0, -100.0, 1500.0]])
     assert r["confere"] and r["datas"][("V/DIN", "2025-000001")] == "2025-11-05"
+
+
+def test_ler_documentos_pdf_com_tipo_partido():
+    from livraria_agentes.interno.analise_vendas import ler_documentos_pdf
+    texto = """Abreviatura Doc. Nº Documento Qtd. Valor Desconto Valor LíquidoData Doc.
+ 59,0002022-001624  16 520,00-4 130,00 20 650,00FACT 22/07/2022
+ 1,0002022-039923  128,21 0,00 128,21V
+/DIN 29/07/2022
+ 16 648,21-4 130,00 20 778,21 60,000Total: 
+"""
+    r = ler_documentos_pdf(texto)
+    assert r["confere"] and r["total"] == 16648.21
+    assert r["documentos"][0] == {"tipo": "FACT", "numero": "2022-001624", "data": "2022-07-22", "liquido": 16520.0,
+                                  "desconto": -4130.0, "quantidade": 59.0}
+    assert r["documentos"][1]["tipo"] == "V/DIN" and r["documentos"][1]["data"] == "2022-07-29"

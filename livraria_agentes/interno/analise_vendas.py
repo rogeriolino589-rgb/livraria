@@ -16,6 +16,8 @@ O Eticadata exporta este mapa (Crystal Reports) para .xls, repartido por várias
 
 from __future__ import annotations
 
+import re
+
 import collections
 from pathlib import Path
 
@@ -184,3 +186,24 @@ def resumo(documentos: list[dict], nomes: dict[str, str] | None = None) -> list[
         for c in ("vendas", "devolucoes", "descontos"):
             g[c] = round(g[c], 2)
     return linhas
+
+
+# ---- Análise de Vendas agrupada por «Documento» exportada em PDF (texto do pypdf)
+# Linha: "<qtd com 3 decimais><nº documento>  <líquido> <desconto> <valor><tipo> <data>"; o tipo pode vir partido.
+_NUM_PDF = r"-?\d{1,3}(?:[   ]\d{3})*,\d{2}"
+_DOC_PDF = re.compile(rf"(-?[\d ]+,\d{{3}})(\d{{4}}-\d+)\s+({_NUM_PDF})\s*({_NUM_PDF})\s+({_NUM_PDF})\s*([A-Z/]+?)\s*"
+                      r"(?:\n\s*)?([A-Z/]*)\s*(\d{2})/(\d{2})/(\d{4})")
+
+
+def ler_documentos_pdf(texto: str) -> dict:
+    """{documentos: [{tipo, numero, data, liquido, desconto, quantidade}], total, soma, confere}."""
+    num = lambda x: float(re.sub(r"[   ]", "", x).replace(",", "."))
+    docs = []
+    for m in _DOC_PDF.finditer(texto):
+        docs.append({"tipo": (m.group(6) + m.group(7)).upper(), "numero": m.group(2),
+                     "data": f"{m.group(10)}-{m.group(9)}-{m.group(8)}", "liquido": num(m.group(3)),
+                     "desconto": num(m.group(4)), "quantidade": num(m.group(1))})
+    t = re.search(rf"({_NUM_PDF})\s*{_NUM_PDF}\s+{_NUM_PDF}\s+[\d ]+,\d{{3}}Total:", texto)
+    soma = round(sum(d["liquido"] for d in docs), 2)
+    total = num(t.group(1)) if t else None
+    return {"documentos": docs, "total": total, "soma": soma, "confere": total is not None and abs(soma - total) < 0.05}

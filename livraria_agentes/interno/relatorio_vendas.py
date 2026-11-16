@@ -299,6 +299,37 @@ def gerar(pasta: Path, saida: Path) -> dict:
             "documentos_com_data": sum(1 for d in vendas if d["data"]), "documentos": len(vendas)}
 
 
+def acrescentar_complementos(vendas: list[dict], complementos: list[Path], diarios: list[Path], nome, avisos: list):
+    """Documentos de uma Análise de Vendas «Documento» em PDF (ex.: 16 a 31/07/2022, depois da exportação principal
+    do ERP19) que ainda não estão no histórico. O vendedor vem do Diário de Vendas; sem tipo de cliente, contam como
+    «sem tipo»."""
+    from .analise_vendas import ler_documentos_pdf
+    from .mapas_eticadata import ler_diario_periodo
+    if not complementos:
+        return
+    vend = {}
+    for arq in diarios:
+        for k, d in ler_diario_periodo(Path(arq).read_text(encoding="utf-8"))["documentos"].items():
+            vend[k] = d["vendedor"]
+    ja = {(d["tipo"], d["numero"]) for d in vendas}
+    for arq in complementos:
+        r = ler_documentos_pdf(Path(arq).read_text(encoding="utf-8"))
+        if not r["confere"]:
+            avisos.append(f"{Path(arq).name}: a soma {r['soma']} não bate com o total {r['total']}")
+        novos = 0
+        for d in r["documentos"]:
+            k = (d["tipo"], d["numero"])
+            if k in ja or d["tipo"] not in TIPOS_VENDA and d["tipo"] not in ("DEVOL", "N/CRE"):
+                continue
+            erp = "ERP19" if d["data"] < "2022-08-01" else "ERP22"
+            v = vend.get(k, "N/D")
+            vendas.append({**d, "ano": d["numero"][:4], "vendedor": v, "nome": nome(v, erp), "erp": erp,
+                           "tipo_cliente": None, "canal": None, "complemento": True})
+            ja.add(k)
+            novos += 1
+        avisos.append(f"{Path(arq).name}: {novos} documento(s) acrescentados (sem tipo de cliente; vendedor pelo Diário)")
+
+
 def formas_por_dia(vendas: list[dict], diarios: list[Path], avisos: list) -> dict:
     """Forma de pagamento de cada venda pelo Diário de Vendas do Eticadata (cruzamento pelo documento).
     Valores da Análise de Vendas (sem IVA) repartidos por dia, categoria do Financeiro e forma.
@@ -340,7 +371,7 @@ def formas_por_dia(vendas: list[dict], diarios: list[Path], avisos: list) -> dic
 
 
 def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_vendedor: int = 60,
-                  diarios: list[Path] | None = None) -> dict:
+                  diarios: list[Path] | None = None, complementos: list[Path] | None = None) -> dict:
     """Dados resumidos para o superapp (ERP da CPAD): vendas por dia e vendedor com varejo/atacado, zonas, tipos
     de entidade e artigos. Valores sem IVA, como a Análise de Vendas do Eticadata."""
     import json
@@ -354,6 +385,7 @@ def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_ven
     for r in dados["datas"].values():
         datas.update(r["datas"])
     vendas = montar_vendas(dados, nome, datas)
+    acrescentar_complementos(vendas, complementos or [], diarios or [], nome, dados["avisos"])
     # por dia e vendedor: docs, vendas, varejo, atacado, sem tipo, e o atacado repartido em igrejas,
     # livrarias/revendedores e empresas/instituições (para as categorias do Financeiro)
     dia = collections.defaultdict(lambda: [0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -413,7 +445,11 @@ def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_ven
 
 if __name__ == "__main__":
     if sys.argv[1] == "--json":  # python -m ... --json PASTA SAIDA.json [DIARIO.txt ...]
-        print(exportar_json(Path(sys.argv[2]), Path(sys.argv[3]), diarios=[Path(a) for a in sys.argv[4:]]))
+        # ficheiros de texto: Diário de Vendas (período) ou Análise de Vendas «Documento» em PDF (complemento)
+        txt = [Path(a) for a in sys.argv[4:]]
+        comp = [a for a in txt if "Análise de Vendas" in a.read_text(encoding="utf-8")[:300]]
+        print(exportar_json(Path(sys.argv[2]), Path(sys.argv[3]), diarios=[a for a in txt if a not in comp],
+                            complementos=comp))
         sys.exit()
     pasta = Path(sys.argv[1])
     saida = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("relatorios/CPAD_Mocambique_analise_vendas.xlsx")
