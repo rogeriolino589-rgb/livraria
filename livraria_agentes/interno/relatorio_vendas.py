@@ -60,6 +60,51 @@ def carregar(pasta: Path) -> dict:
     return dados
 
 
+def montar_vendas(dados: dict, nome, datas: dict) -> list[dict]:
+    """Um registo por documento: vendedor, data (relatório de datas) e canal (relatório por tipo de entidade)."""
+    # documentos de venda com vendedor e data (os que só existem no relatório de datas ficam "por identificar")
+    vendas = []
+    for erp, r in dados["vendedor"].items():
+        vistos = set()
+        for d in r["documentos"]:
+            vistos.add((d["tipo"], d["numero"]))
+            vendas.append({**d, "erp": erp, "data": datas.get((d["tipo"], d["numero"])), "nome": nome(d["vendedor"], erp)})
+        for erp_d, rd in dados["datas"].items():
+            if erp_d != erp:
+                continue
+            for (tipo, numero), dt in rd["datas"].items():
+                if (tipo, numero) not in vistos:
+                    vendas.append({"tipo": tipo, "numero": numero, "ano": numero[:4], "vendedor": "?",
+                                   "nome": "Vendedor por identificar", "liquido": rd["valores"][(tipo, numero)], "desconto": 0.0,
+                                   "erp": erp, "data": dt, "por_identificar": True})
+                    dados["avisos"].append(f"{erp}: {tipo} {numero} ({dt}) está no relatório de datas mas não no "
+                                           "de vendedores (exportado antes)")
+
+    # tipo de cliente de cada documento (relatório "Documento, Artigo resumido a Tipo de Entidade")
+    tipo_doc = {}
+    for erp, r in dados["tipos"].items():
+        for d in r["documentos"]:
+            tipo_doc[(erp, d["tipo"], d["numero"])] = d["nome_vendedor"]
+    for erp, r in dados["tipos"].items():
+        conhecidos = {(d["tipo"], d["numero"]) for d in dados["vendedor"].get(erp, {}).get("documentos", [])}
+        extra = collections.Counter(d["tipo"] for d in r["documentos"]
+                                    if (d["tipo"], d["numero"]) not in conhecidos and d["tipo"] not in TIPOS_VENDA)
+        if extra and conhecidos:
+            dados["avisos"].append(f"{erp}: o relatório por tipo de entidade tem documentos que não são vendas e ficam de "
+                                   "fora (" + ", ".join(f"{t} {n}" for t, n in extra.most_common()) + ")")
+    sem_tipo = 0
+    for d in vendas:
+        t = tipo_doc.get((d["erp"], d["tipo"], d["numero"]))
+        d["tipo_cliente"] = t
+        d["canal"] = canal(t) if t else None
+        if t is None and d["erp"] in dados["tipos"]:
+            sem_tipo += 1
+    if sem_tipo:
+        dados["avisos"].append(f"{sem_tipo} documento(s) sem tipo de cliente no relatório «Tipo de Entidade»")
+
+    return vendas
+
+
 def gerar(pasta: Path, saida: Path) -> dict:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -105,23 +150,7 @@ def gerar(pasta: Path, saida: Path) -> dict:
     def filtro(ws):
         ws.auto_filter.ref = f"A1:{L(ws.max_column)}{ws.max_row}"
 
-    # documentos de venda com vendedor e data (os que só existem no relatório de datas ficam "por identificar")
-    vendas = []
-    for erp, r in dados["vendedor"].items():
-        vistos = set()
-        for d in r["documentos"]:
-            vistos.add((d["tipo"], d["numero"]))
-            vendas.append({**d, "erp": erp, "data": datas.get((d["tipo"], d["numero"])), "nome": nome(d["vendedor"], erp)})
-        for erp_d, rd in dados["datas"].items():
-            if erp_d != erp:
-                continue
-            for (tipo, numero), dt in rd["datas"].items():
-                if (tipo, numero) not in vistos:
-                    vendas.append({"tipo": tipo, "numero": numero, "ano": numero[:4], "vendedor": "?",
-                                   "nome": "Vendedor por identificar", "liquido": rd["valores"][(tipo, numero)], "desconto": 0.0,
-                                   "erp": erp, "data": dt, "por_identificar": True})
-                    dados["avisos"].append(f"{erp}: {tipo} {numero} ({dt}) está no relatório de datas mas não no "
-                                           "de vendedores (exportado antes)")
+    vendas = montar_vendas(dados, nome, datas)
 
     # 1. Varejo x Atacado
     ws = folha("Varejo × Atacado", ["Sistema", "Vendedor", "Varejo (MT)", "Atacado (MT)", "Sem tipo N/D (MT)",
@@ -201,28 +230,6 @@ def gerar(pasta: Path, saida: Path) -> dict:
             fmt(ws, ws.max_row, "E", "F")
     filtro(ws)
 
-    # tipo de cliente de cada documento (relatório "Documento, Artigo resumido a Tipo de Entidade")
-    tipo_doc = {}
-    for erp, r in dados["tipos"].items():
-        for d in r["documentos"]:
-            tipo_doc[(erp, d["tipo"], d["numero"])] = d["nome_vendedor"]
-    for erp, r in dados["tipos"].items():
-        conhecidos = {(d["tipo"], d["numero"]) for d in dados["vendedor"].get(erp, {}).get("documentos", [])}
-        extra = collections.Counter(d["tipo"] for d in r["documentos"]
-                                    if (d["tipo"], d["numero"]) not in conhecidos and d["tipo"] not in TIPOS_VENDA)
-        if extra and conhecidos:
-            dados["avisos"].append(f"{erp}: o relatório por tipo de entidade tem documentos que não são vendas e ficam de "
-                                   "fora (" + ", ".join(f"{t} {n}" for t, n in extra.most_common()) + ")")
-    sem_tipo = 0
-    for d in vendas:
-        t = tipo_doc.get((d["erp"], d["tipo"], d["numero"]))
-        d["tipo_cliente"] = t
-        d["canal"] = canal(t) if t else None
-        if t is None and d["erp"] in dados["tipos"]:
-            sem_tipo += 1
-    if sem_tipo:
-        dados["avisos"].append(f"{sem_tipo} documento(s) sem tipo de cliente no relatório «Tipo de Entidade»")
-
     # Varejo x Atacado por dia, mês e ano (loja e cada vendedor), onde há o relatório por tipo de entidade
     ca = {p: collections.defaultdict(lambda: {"Varejo": [0, 0.0], "Atacado": [0, 0.0], "Sem tipo (N/D)": [0, 0.0]})
           for p in ("dia", "mes", "ano")}
@@ -296,3 +303,62 @@ if __name__ == "__main__":
     pasta = Path(sys.argv[1])
     saida = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("relatorios/CPAD_Mocambique_analise_vendas.xlsx")
     print(gerar(pasta, saida))
+
+
+def exportar_json(pasta: Path, saida: Path, top_artigos: int = 1500, top_por_vendedor: int = 60) -> dict:
+    """Dados resumidos para o superapp (ERP da CPAD): vendas por dia e vendedor com varejo/atacado, zonas, tipos
+    de entidade e artigos. Valores sem IVA, como a Análise de Vendas do Eticadata."""
+    import json
+    from datetime import date
+
+    dados = carregar(pasta)
+    nomes = configuracao().get("vendedores", {})
+    nome = lambda c, erp="": (nomes.get(c) or ("Sem vendedor (N/D)" if c == "N/D" else c)) + (
+        " (INATIVO)" if c == "3" and erp == "ERP22" else "")
+    datas = {}
+    for r in dados["datas"].values():
+        datas.update(r["datas"])
+    vendas = montar_vendas(dados, nome, datas)
+    dia = collections.defaultdict(lambda: [0, 0.0, 0.0, 0.0, 0.0])
+    for d in vendas:
+        if not d["data"]:
+            continue
+        g = dia[(d["data"], d["erp"], d["nome"])]
+        if d["tipo"] in TIPOS_VENDA:
+            g[0] += 1
+            g[1] += d["liquido"]
+        if d["canal"]:
+            g[{"Varejo": 2, "Atacado": 3}.get(d["canal"], 4)] += d["liquido"]
+    zonas = collections.defaultdict(lambda: [0.0, 0.0, 0.0])
+    for erp, z in dados["zonas"].items():
+        for x in z["registos"]:
+            zonas[(erp, nome(x["vendedor"], erp), x["zona"])][{"Varejo": 0, "Atacado": 1}.get(canal(x["tipo"]), 2)] += x["liquido"]
+    tipos = collections.defaultdict(lambda: [0.0, 0.0])
+    for erp, z in dados["zonas"].items():
+        for x in z["registos"]:
+            tipos[(erp, x["tipo"])][0] += x["liquido"]
+            tipos[(erp, x["tipo"])][1] += x["quantidade"]
+    art = collections.defaultdict(lambda: ["", 0.0, 0.0, set()])
+    av = collections.defaultdict(lambda: collections.defaultdict(lambda: ["", 0.0, 0.0]))
+    for erp, r in dados["vendedor"].items():
+        for i in r["itens"]:
+            a = art[i["artigo"]]
+            a[0], a[1], a[2] = i["nome_artigo"], a[1] + i["quantidade"], a[2] + i["liquido"]
+            a[3].add((erp, i["tipo"], i["numero"]))
+            b = av[nome(i["vendedor"])][i["artigo"]]
+            b[0], b[1], b[2] = i["nome_artigo"], b[1] + i["quantidade"], b[2] + i["liquido"]
+    r2 = lambda v: round(v, 2)
+    saida_dados = {
+        "gerado": date.today().isoformat(),
+        "fonte": "Eticadata ERP19 + ERP22 — Análise de Vendas (valores sem IVA, inclui faturas)",
+        "dias": [[k[0], k[1], k[2], g[0], r2(g[1]), r2(g[2]), r2(g[3]), r2(g[4])] for k, g in sorted(dia.items())],
+        "zonas": [[*k, r2(v[0]), r2(v[1]), r2(v[2])] for k, v in sorted(zonas.items())],
+        "tipos": [[k[0], k[1], canal(k[1]), r2(v[0]), round(v[1])] for k, v in sorted(tipos.items(), key=lambda i: -i[1][0])],
+        "artigos": [[k, a[0], round(a[1]), r2(a[2]), len(a[3])]
+                    for k, a in sorted(art.items(), key=lambda i: -i[1][2])[:top_artigos]],
+        "artigosVend": {v: [[k, b[0], round(b[1]), r2(b[2])] for k, b in sorted(m.items(), key=lambda i: -i[1][2])[:top_por_vendedor]]
+                        for v, m in av.items()},
+        "avisos": dados["avisos"],
+    }
+    Path(saida).write_text(json.dumps(saida_dados, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    return {"arquivo": str(saida), "dias": len(saida_dados["dias"]), "bytes": Path(saida).stat().st_size}
