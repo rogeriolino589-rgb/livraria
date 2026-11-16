@@ -206,6 +206,13 @@ def gerar(pasta: Path, saida: Path) -> dict:
     for erp, r in dados["tipos"].items():
         for d in r["documentos"]:
             tipo_doc[(erp, d["tipo"], d["numero"])] = d["nome_vendedor"]
+    for erp, r in dados["tipos"].items():
+        conhecidos = {(d["tipo"], d["numero"]) for d in dados["vendedor"].get(erp, {}).get("documentos", [])}
+        extra = collections.Counter(d["tipo"] for d in r["documentos"]
+                                    if (d["tipo"], d["numero"]) not in conhecidos and d["tipo"] not in TIPOS_VENDA)
+        if extra and conhecidos:
+            dados["avisos"].append(f"{erp}: o relatório por tipo de entidade tem documentos que não são vendas e ficam de "
+                                   "fora (" + ", ".join(f"{t} {n}" for t, n in extra.most_common()) + ")")
     sem_tipo = 0
     for d in vendas:
         t = tipo_doc.get((d["erp"], d["tipo"], d["numero"]))
