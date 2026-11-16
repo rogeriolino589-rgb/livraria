@@ -168,3 +168,63 @@ def test_responde_pelo_mesmo_numero_da_loja(tmp_path, meta):
     corpo = json.dumps(corpo_dict).encode()
     cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
     assert enviados == ["/v23.0/999/messages", "/v23.0/999/messages"]  # marcar como lida + resposta
+
+
+def _webhook_linha(linha, **valor):
+    corpo = {"object": "whatsapp_business_account", "entry": [{"id": "WABA", "changes": [{"field": "messages",
+             "value": {"messaging_product": "whatsapp",
+                       "metadata": {"phone_number_id": "123", "display_phone_number": linha}, **valor}}]}]}
+    return json.dumps(corpo).encode()
+
+
+def test_piloto_so_responde_na_linha_de_retalho(tmp_path, canal, meta, monkeypatch):
+    monkeypatch.setenv("WHATSAPP_NUMERO_ROBO", "+258 84 468 9369")
+    cliente, falso = _app(tmp_path, canal, [_msg(_texto("Paz do Senhor! Em que posso ajudar?"))])
+    msg = {"from": "258851234567", "id": "wamid.R1", "type": "text", "text": {"body": "oi"}}
+    corpo = _webhook_linha("258 86 504 8400", messages=[msg])  # linha das igrejas: ainda fora do piloto
+    cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    assert meta.envios == [] and falso.chamadas == []
+    msg["id"] = "wamid.R2"
+    corpo = _webhook_linha("258844689369", messages=[msg])  # linha de retalho
+    cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    assert meta.envios[-1]["text"]["body"] == "Paz do Senhor! Em que posso ajudar?"
+
+
+def test_vendedor_assume_pela_app_e_devolve_com_robo(tmp_path, canal, meta, monkeypatch):
+    monkeypatch.setenv("WHATSAPP_NUMERO_ROBO", "+258 84 468 9369")
+    cliente, falso = _app(tmp_path, canal, [_msg(_texto("Olá de novo! Em que mais posso ajudar?"))])
+    tel = "258851234567"
+    eco = {"from": "258844689369", "to": tel, "id": "wamid.E1", "type": "text",
+           "text": {"body": "Bom dia, aqui é o vendedor. Já separo a sua Bíblia."}}
+    corpo = _webhook_linha("258844689369", message_echoes=[eco])
+    cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    msg = {"from": tel, "id": "wamid.C1", "type": "text", "text": {"body": "Obrigado!"}}
+    corpo = _webhook_linha("258844689369", messages=[msg])
+    cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    assert falso.chamadas == []  # o robô ficou calado: o vendedor está a atender
+    textos = [e["text"]["body"] for e in meta.envios if e.get("type") == "text"]
+    assert textos == []
+    eco = {**eco, "id": "wamid.E2", "text": {"body": "Qualquer coisa, o nosso assistente continua aqui. #robô"}}
+    corpo = _webhook_linha("258844689369", message_echoes=[eco])
+    cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    msg = {**msg, "id": "wamid.C2", "text": {"body": "Têm a Harpa Cristã?"}}
+    corpo = _webhook_linha("258844689369", messages=[msg])
+    cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    assert len(falso.chamadas) == 1  # o robô voltou
+    aviso = falso.chamadas[0][-1]["content"]
+    assert "Já separo a sua Bíblia" in aviso and "Obrigado!" in aviso  # e sabe o que foi conversado
+
+
+def test_robo_volta_sozinho_24h_depois_da_ultima_resposta_humana(tmp_path):
+    from datetime import timedelta
+
+    agora = [AGORA]
+    loja = Loja(tmp_path / "loja.json", relogio=lambda: agora[0])
+    falso = ClaudeFalso([_msg(_texto("Bom dia! Posso ajudar?"))])
+    motor = Motor(loja, tmp_path / "c", cliente=falso)
+    assert motor.humano_respondeu_pela_app("258851234567", "Já trato disso") == "assumiu"
+    agora[0] = AGORA + timedelta(hours=5)
+    assert motor.responder("258851234567", "e então?").aguardando_humano
+    agora[0] = AGORA + timedelta(hours=25)
+    r = motor.responder("258851234567", "bom dia")
+    assert not r.aguardando_humano and r.textos == ["Bom dia! Posso ajudar?"]

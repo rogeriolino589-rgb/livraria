@@ -81,6 +81,9 @@ def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret:
     equipe = equipe or {}
     app = FastAPI(title="Livraria - webhook do WhatsApp", docs_url=None, redoc_url=None)
     recentes = _Recentes()
+    from .vendedores import numeros_do_robo
+
+    ativas = numeros_do_robo()  # linhas em que o robô atende (no piloto: só a de retalho)
     travas: dict[str, threading.Lock] = {}
     travas_trava = threading.Lock()
 
@@ -126,6 +129,16 @@ def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret:
         for entrada in dados.get("entry", []):
             for mudanca in entrada.get("changes", []):
                 valor = mudanca.get("value", {})
+                linha = "".join(c for c in valor.get("metadata", {}).get("display_phone_number", "") if c.isdigit())
+                if ativas and linha and linha not in ativas:
+                    log.info("Mensagem na linha %s ignorada: o robô não está ativo nessa linha", linha)
+                    continue
+                # Coexistência: o vendedor respondeu pela app WhatsApp Business -> o robô cala-se nessa conversa.
+                for eco in valor.get("message_echoes", []):
+                    if recentes.novo(eco.get("id", "")) and eco.get("to"):
+                        texto_eco = extrair_texto(eco) or ""
+                        resultado = motor.humano_respondeu_pela_app(eco["to"], texto_eco)
+                        log.info("Vendedor respondeu pela app a %s: %s", eco["to"], resultado)
                 for msg in valor.get("messages", []):
                     if not recentes.novo(msg["id"]):
                         continue

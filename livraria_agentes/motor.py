@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import logging
+import unicodedata
+from datetime import datetime
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,6 +30,14 @@ MODELO = os.environ.get("LIVRARIA_MODELO", "claude-opus-5-5")
 ESFORCO = os.environ.get("LIVRARIA_ESFORCO", "medium")  # low | medium | high
 MAX_PASSOS = 12  # chamadas ao modelo por mensagem do cliente
 BETA_FALLBACK = "server-side-fallback-2026-07-01"
+
+PALAVRA_DEVOLVER = "#robo"  # escrita pelo vendedor na app: o cliente volta para o robô
+HORAS_DEVOLVER = 24  # sem resposta humana pela app há mais do que isto, o robô volta a atender
+
+
+def normalizar_palavra(texto: str) -> str:
+    return unicodedata.normalize("NFKD", texto.lower()).encode("ascii", "ignore").decode()
+
 
 DIAS_SEMANA = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
 
@@ -92,6 +102,20 @@ class Motor:
         estado["conversa_humana"] = estado.get("conversa_humana", []) + [f"Equipe: {texto}"]
         self.salvar(estado)
 
+    def humano_respondeu_pela_app(self, telefone: str, texto: str) -> str:
+        """Um vendedor respondeu ao cliente pela app WhatsApp Business (coexistência). O robô cala-se nesta
+        conversa; se a mensagem tiver #robo, devolve o cliente ao robô. Devolve 'assumiu' ou 'devolveu'."""
+        if PALAVRA_DEVOLVER in normalizar_palavra(texto):
+            self.registrar_resposta_humana(telefone, texto)
+            self.liberar_humano(telefone)
+            return "devolveu"
+        estado = self.carregar(telefone)
+        estado["aguardando_humano"] = True
+        estado["humano_ultima_resposta"] = self.loja.relogio().isoformat(timespec="minutes")
+        estado["conversa_humana"] = estado.get("conversa_humana", []) + [f"Equipe: {texto}"]
+        self.salvar(estado)
+        return "assumiu"
+
     def liberar_humano(self, telefone: str) -> None:
         """A equipe terminou o atendimento: o robô volta a responder este cliente."""
         estado = self.carregar(telefone)
@@ -106,6 +130,11 @@ class Motor:
     # ----------------------------------------------------------- conversa
     def responder(self, telefone: str, texto: str) -> Resposta:
         estado = self.carregar(telefone)
+        ultima = estado.get("humano_ultima_resposta")
+        if estado["aguardando_humano"] and ultima and (
+                self.loja.relogio() - datetime.fromisoformat(ultima)).total_seconds() > HORAS_DEVOLVER * 3600:
+            self.liberar_humano(telefone)  # ninguém respondeu pela app há mais de 24h: o robô volta
+            estado = self.carregar(telefone)
         if estado["aguardando_humano"]:
             # Um atendente está cuidando da conversa: o robô fica quieto e só registra.
             self.loja.pedir_humano(telefone, f"Nova mensagem do cliente: {texto}")

@@ -108,8 +108,29 @@ não falou com o número da loja nas últimas 24h, o aviso segue pelo modelo apr
 (categoria Utilidade, pt_PT): "Olá, {{1}}! {{2}}: {{3}} ({{4}}). Os detalhes estão na sua lista de tarefas;
 responda aqui para ver."
 
+### Teste piloto: linha de retalho (+258 84 468 9369)
+
+1. **Telemóvel da linha:** app WhatsApp Business atualizada (2.24.17 ou superior). Não apague nem
+   desregiste o número da app.
+2. **Meta:** conta Meta Business da CPAD (verificada) e app na Meta for Developers com o WhatsApp. Ligue a
+   linha pelo registo de coexistência (*Embedded Signup*, opção "ligar uma conta existente da app WhatsApp
+   Business") — diretamente ou através de um parceiro da Meta que ofereça coexistência. Durante o registo, o
+   WhatsApp Web e outros aparelhos ligados são desligados; volte a ligá-los depois. O número fica em
+   sincronização (sync_pending) até ficar ativo.
+3. **Webhook:** assine os campos `messages` e `smb_message_echoes` (respostas que a equipa dá pela app).
+4. **Servidor:** `LIVRARIA_PAIS=mz`, `WHATSAPP_NUMERO_ROBO="+258 84 468 9369"` (só esta linha fica ativa),
+   `WHATSAPP_PHONE_NUMBER_ID` da linha de retalho, token, segredo do app, senha do webhook e
+   `ANTHROPIC_API_KEY`. Importe o catálogo e os clientes (`importar_catalogo`, `importar_clientes`).
+5. **Teste:** de um telemóvel pessoal, escreva para a linha e experimente: pedir uma Bíblia, pedir preço,
+   fazer um pedido, pedir oração, pedir para falar com uma pessoa. Responda pela app para ver o robô calar-se,
+   e escreva `#robo` para lhe devolver o cliente.
+
+Durante o piloto, quem acompanhar a app da linha de retalho é quem atende os clientes passados a uma pessoa.
+
 ### Atendimento humano
-Quando um agente chama um atendente, o robô para de responder aquele cliente.
+Quando um agente chama um atendente, ou quando alguém da equipa responde ao cliente pela app WhatsApp Business
+(coexistência), o robô para de responder aquele cliente. Para lhe devolver o cliente, escreva `#robo` na
+conversa pela app (ou use `equipe liberar`); sem resposta humana durante 24h, o robô volta a atender.
 
 ```bash
 python -m livraria_agentes.equipe fila                         # quem está esperando
