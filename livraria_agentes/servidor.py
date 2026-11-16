@@ -28,11 +28,11 @@ from fastapi.responses import PlainTextResponse
 
 from .canal import CanalWhatsApp
 from .motor import Motor
+from .textos import t
 
 log = logging.getLogger(__name__)
 
-MSG_SO_TEXTO = ("Por enquanto só consigo ler mensagens de texto 🙂 "
-                "Pode escrever o que precisa?")
+MSG_SO_TEXTO = t("so_texto")
 
 
 class _Recentes:

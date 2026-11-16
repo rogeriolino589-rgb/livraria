@@ -17,9 +17,11 @@ from collections import Counter
 import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo  # noqa: F401
 
-FUSO = ZoneInfo(os.environ.get("LIVRARIA_FUSO", "Africa/Maputo"))
+from .pais import PAIS
+
+FUSO = PAIS.tz
 SEMENTE = Path(__file__).resolve().parent.parent / "dados" / "loja_inicial.json"
 
 # Horário de funcionamento para agendamentos: segunda (0) a sábado (5).
@@ -32,13 +34,13 @@ TIPOS_AGENDAMENTO = {
 }
 VAGAS_POR_HORARIO = 2
 PRAZO_PAGAMENTO_DIAS = 2
-FRETE_FIXO = 250.0  # meticais
+FRETE_FIXO = PAIS.taxa_entrega  # na moeda do país
 
 # Política de descontos da CPAD Moçambique para compras de instituições (pode ser ajustada em
 # loja.json -> config -> desconto_instituicoes). O mínimo conta só os produtos, sem a taxa de entrega.
 POLITICA_DESCONTO = {
     "tipos": ["Igreja", "Empresa / instituição", "Revendedor", "Pastor revendedor", "Livraria"],
-    "minimo": 5000.0,
+    "minimo": PAIS.desconto_minimo,  # None: país ainda sem política de descontos
     # desconto por tipo de produto; "so_marca_cpad": a taxa só vale para produtos da marca CPAD
     "taxas": [
         {"genero": "Livros", "taxa": 0.30, "so_marca_cpad": True},
@@ -53,8 +55,8 @@ PREFIXOS_CPAD = ("9788526", "9798526", "7908234", "7898203")
 
 
 def meticais(valor: float) -> str:
-    """1234.5 -> '1.234,50'."""
-    return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    """Valor no formato do país (nome mantido por compatibilidade)."""
+    return PAIS.dinheiro(valor)
 
 
 def eh_marca_cpad(livro: dict) -> bool:
@@ -204,7 +206,7 @@ class Loja:
 
     def orcamento(self, telefone: str, itens: list[dict], entrega: str) -> dict:
         """Calcula o pedido com a política de descontos para igrejas, instituições, revendedores e livrarias:
-        com compras a partir do mínimo (5.000 MT em produtos), 30% em Livros e Bíblias CPAD e Harpa Cristã,
+        com compras a partir do mínimo do país (em Moçambique, 5.000 MT em produtos), 30% em Livros e Bíblias CPAD e Harpa Cristã,
         20% em Lições Bíblicas e 15% no resto."""
         if not itens:
             raise ErroLoja("O pedido precisa de pelo menos um produto.")
@@ -228,7 +230,7 @@ class Loja:
             subtotal += valor
         subtotal = round(subtotal, 2)
         tipo = self.ficha_cliente(telefone).get("tipo")
-        elegivel = tipo in regra["tipos"]
+        elegivel = tipo in regra["tipos"] and regra["minimo"] is not None
         aplica = elegivel and subtotal >= regra["minimo"]
         desconto_total = 0.0
         for linha in linhas:
@@ -243,7 +245,7 @@ class Loja:
             info = (f"Desconto de instituição aplicado ({tipo}): 30% em Livros e Bíblias CPAD e Harpa Cristã, "
                     "20% em Lições Bíblicas e 15% no resto.")
         elif elegivel:
-            info = (f"{tipo}: faltam {meticais(regra['minimo'] - subtotal)} MT em produtos para ter desconto "
+            info = (f"{tipo}: faltam {PAIS.dinheiro(regra['minimo'] - subtotal, True)} em produtos para ter desconto "
                     "(30% em Livros e Bíblias CPAD e Harpa Cristã, 20% em Lições Bíblicas, 15% no resto).")
         else:
             info = ("Sem desconto: o desconto é para igrejas, instituições, revendedores e livrarias registados no "

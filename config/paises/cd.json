@@ -1,0 +1,46 @@
+{
+  "_estado": "rascunho - confirmar com a equipa local antes de usar",
+  "nome": "República Democrática do Congo",
+  "nome_loja": "CPAD RD Congo",
+  "moeda": "USD",
+  "simbolo": "$",
+  "simbolo_antes": true,
+  "separador_milhar": " ",
+  "separador_decimal": ",",
+  "fuso": "Africa/Kinshasa",
+  "lingua_clientes": "fr",
+  "descricao_lingua": "francês simples (o cliente pode escrever em lingala, suaíli, kikongo ou tshiluba: responda em francês, ou na língua dele se a souber bem)",
+  "linguas_locais": [
+    "Français",
+    "Lingala",
+    "Kiswahili",
+    "Kikongo",
+    "Tshiluba"
+  ],
+  "lingua_equipa": "pt",
+  "idioma_modelos_whatsapp": "fr",
+  "indicativo": "243",
+  "digitos_nacionais": 9,
+  "prefixos_moveis": [
+    "8",
+    "9"
+  ],
+  "formas_pagamento": [
+    "M-Pesa",
+    "Orange Money",
+    "Airtel Money",
+    "transferência bancária",
+    "numerário"
+  ],
+  "taxa_entrega": 0.0,
+  "imposto_nome": "TVA",
+  "imposto_taxa": 0.16,
+  "id_fiscal": "NIF",
+  "observacoes": [
+    "Moeda: muitos preços são em dólares (USD); o franco congolês (CDF) também é usado. Decidir qual mostrar.",
+    "Fuso: Kinshasa usa UTC+1; o leste (Lubumbashi, Goma) usa UTC+2 (Africa/Lubumbashi). Ajustar à cidade da loja.",
+    "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático."
+  ],
+  "desconto_minimo": null
+}

@@ -24,6 +24,8 @@ import httpx
 from ..agentes import NOME_LOJA
 from ..config import abrir
 from ..loja import Loja
+from ..pais import PAIS
+from ..textos import t
 from . import abrir_assistente, equipe_whatsapp
 from .assistente import Assistente
 
@@ -65,20 +67,21 @@ def destinatario_principal() -> tuple[str, str] | None:
 
 def mensagens_de_tarefas(loja: Loja) -> dict[str, str]:
     """Mensagem de manhã para cada pessoa da equipa, com as suas tarefas pendentes (sem usar IA)."""
-    sem_responsavel = loja.listar_tarefas(None, True)
-    sem_responsavel = [t for t in sem_responsavel if not t["responsavel"]]
+    lingua = PAIS.lingua_equipa
+    sem_responsavel = [x for x in loja.listar_tarefas(None, True) if not x["responsavel"]]
     mensagens = {}
     for telefone, nome in equipe_whatsapp().items():
         minhas = loja.listar_tarefas(nome, True)
-        linhas = [f"Paz do Senhor, {nome.split()[0]}! Bom dia."]
+        linhas = [t("tarefas_bom_dia", lingua, nome=nome.split()[0])]
         if minhas:
-            linhas.append("As suas tarefas de hoje:")
-            linhas += [f"• {t['descricao']}" + (f" (até {t['prazo']})" if t["prazo"] else "") for t in minhas]
+            linhas.append(t("tarefas_lista", lingua))
+            linhas += [f"• {x['descricao']}" + (t("tarefas_ate", lingua, prazo=x["prazo"]) if x["prazo"] else "")
+                       for x in minhas]
         else:
-            linhas.append("Não tem tarefas atribuídas para hoje.")
+            linhas.append(t("tarefas_nenhuma", lingua))
         if sem_responsavel:
-            linhas.append(f"Há {len(sem_responsavel)} tarefa(s) da loja ainda sem responsável.")
-        linhas.append("Quando terminar uma, avise aqui. Deus abençoe!")
+            linhas.append(t("tarefas_sem_responsavel", lingua, n=len(sem_responsavel)))
+        linhas.append(t("tarefas_fim", lingua))
         mensagens[telefone] = "\n".join(linhas)
     return mensagens
 
@@ -92,7 +95,7 @@ def _enviar(canal, assistente: Assistente, telefone: str, nome: str, texto: str)
     except httpx.HTTPStatusError:
         log.info("Fora da janela de 24h com %s: enviando aviso por modelo", telefone)
         canal.enviar_modelo(telefone, "aviso_resumo_diario", [nome.split()[0]],
-                            f"Olá, {nome}! O resumo diário da livraria está pronto. Responda *resumo* para receber.")
+                            t("aviso_resumo", PAIS.lingua_equipa, nome=nome))
 
 
 def rodar(rotina: str, loja: Loja, assistente: Assistente, canal=None) -> dict:

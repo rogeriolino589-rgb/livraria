@@ -1,0 +1,40 @@
+{
+  "_estado": "rascunho - confirmar com a equipa local antes de usar",
+  "nome": "Eswatini",
+  "nome_loja": "CPAD Eswatini",
+  "moeda": "SZL",
+  "simbolo": "E",
+  "simbolo_antes": true,
+  "separador_milhar": " ",
+  "separador_decimal": ".",
+  "fuso": "Africa/Mbabane",
+  "lingua_clientes": "en",
+  "descricao_lingua": "inglês simples (o cliente pode escrever em siSwati: responda em inglês claro, ou em siSwati se a equipa aprovar)",
+  "linguas_locais": [
+    "English",
+    "siSwati"
+  ],
+  "lingua_equipa": "pt",
+  "idioma_modelos_whatsapp": "en",
+  "indicativo": "268",
+  "digitos_nacionais": 8,
+  "prefixos_moveis": [
+    "7"
+  ],
+  "formas_pagamento": [
+    "MTN MoMo",
+    "transferência bancária",
+    "cartão",
+    "numerário"
+  ],
+  "taxa_entrega": 0.0,
+  "imposto_nome": "VAT",
+  "imposto_taxa": 0.15,
+  "id_fiscal": "TIN",
+  "observacoes": [
+    "O rand sul-africano (ZAR) também circula ao par com o lilangeni: decidir se aceita.",
+    "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático."
+  ],
+  "desconto_minimo": null
+}

@@ -19,6 +19,8 @@ import anthropic
 from . import ferramentas
 from .agentes import AGENTE_INICIAL, AGENTES, SISTEMA
 from .loja import ErroLoja, Loja
+from .pais import PAIS
+from .textos import t
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +31,8 @@ BETA_FALLBACK = "server-side-fallback-2026-07-01"
 
 DIAS_SEMANA = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
 
-MSG_INSTABILIDADE = "Desculpe, tivemos uma falha técnica. Pode enviar a sua mensagem de novo dentro de instantes? 🙏"
-MSG_RECUSA = "Desculpe, não consigo ajudar com isso por aqui. Posso ajudar com livros, pedidos ou marcações?"
+MSG_INSTABILIDADE = t("instabilidade")
+MSG_RECUSA = t("recusa")
 
 
 @dataclass
@@ -124,7 +126,7 @@ class Motor:
                 cliente += f"; no cadastro da CPAD como {ficha['tipo']}"
             if ficha.get("cidade"):
                 cliente += f"; cidade {ficha['cidade']}"
-            avisos.append(f"Contexto: agora é {dia}, {momento:%d/%m/%Y %H:%M} (hora de Moçambique). "
+            avisos.append(f"Contexto: agora é {dia}, {momento:%d/%m/%Y %H:%M} (hora local, {PAIS.nome}). "
                           f"Cliente: {cliente}; WhatsApp {telefone}.")
             estado["contexto_em"] = momento.date().isoformat()
         avisos += estado["avisos_pendentes"]
@@ -206,7 +208,7 @@ class Motor:
                              f"Agente ativo agora: {novo_agente}. Motivo da transferência: {motivo} "
                              f"Continue o atendimento a partir daqui."})
         log.warning("Limite de passos atingido (%s)", telefone)
-        resposta.textos.append("Só um instante, vou verificar isso com a equipa.")
+        resposta.textos.append(t("verificar_equipa"))
 
     def _executar(self, estado: dict, agente: str, nome: str, entrada: dict) -> tuple[str, bool]:
         """Devolve (conteúdo do resultado, se é erro)."""

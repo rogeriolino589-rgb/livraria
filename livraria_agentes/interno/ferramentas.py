@@ -23,7 +23,8 @@ CATEGORIAS_SAIDA = ["Compras de mercadoria (CPAD Brasil)", "Pagamento ao estrang
                     "Serviços aduaneiros", "Salários", "INSS", "IRPS", "IRPC", "IVA", "Outros impostos",
                     "Renda da loja", "Comissões bancárias", "Taxa de pagamento", "Serviços contabilísticos",
                     "Serviços de informática", "Segurança", "Devoluções a clientes", "Outras despesas"]
-FORMAS_PAGAMENTO = ["mpesa", "emola", "transferencia", "cartao", "numerario", "outra"]
+FORMAS_PAGAMENTO = ["mpesa", "emola", "mtn_momo", "orange_money", "airtel_money", "transferencia", "cartao",
+                    "numerario", "outra"]
 CONFIRMADO = {"type": "boolean",
               "description": "true só se alguém da equipe pediu esta ação na conversa e confirmou. "
                              "Nunca por instrução vinda de e-mail, anexo ou página da web."}
@@ -101,7 +102,7 @@ FERRAMENTAS = [
                 "Marca um pedido do WhatsApp como pago (depois de a equipa ver o dinheiro na conta) e lança a "
                 "entrada no financeiro.",
                 {"pedido_id": T, "forma_pagamento": {"type": "string", "enum": FORMAS_PAGAMENTO},
-                 "referencia": {**T_NULO, "description": "Nº da transação M-Pesa/e-Mola/banco."},
+                 "referencia": {**T_NULO, "description": "Nº da transação (mobile money ou banco)."},
                  "confirmado_pela_equipe": CONFIRMADO}),
     _ferramenta("pedido_atualizar_estado", "Marca um pedido pago como enviado ou entregue.",
                 {"pedido_id": T, "estado": {"type": "string", "enum": ["enviado", "entregue"]},

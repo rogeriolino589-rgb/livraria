@@ -6,7 +6,8 @@ CAMINHO pode ser a página HTML do "CPAD ERP Moçambique — Livraria" (os clien
 um JSON com a lista [id, nome, tipo, telefone, cidade, bairro, mês de aniversário] ou uma planilha
 .xlsx/.csv com essas colunas.
 
-Os números moçambicanos (84 123 4567) viram o formato do WhatsApp (258841234567). Quando um cliente da
+Os números locais (em Moçambique, 84 123 4567) viram o formato do WhatsApp (258841234567), conforme o
+perfil do país (LIVRARIA_PAIS). Quando um cliente da
 lista escreve no WhatsApp, os agentes já sabem o nome e o tipo dele. Nomes que o próprio cliente deu na
 conversa não são substituídos. Os dados ficam só na base do robô (dados/estado), fora do Git.
 """
@@ -23,6 +24,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .loja import ErroLoja, Loja
+from .pais import PAIS
 
 TIPOS = {"CLIENTE VIP": "Cliente VIP", "PASTOR": "Pastor", "IGREJA": "Igreja", "MISSIONARIOS": "Missionário",
          "EMPRESAS / INSTITUIÇÕES": "Empresa / instituição", "REVENDEDOR": "Revendedor",
@@ -32,18 +34,9 @@ MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "A
 
 
 def numeros_whatsapp(telefone: str) -> list[str]:
-    """'84 727 9956' -> ['258847279956']; '847279956/827838470' -> os dois; outros formatos -> []."""
-    digitos = re.sub(r"\D", "", str(telefone or ""))
-    if len(digitos) == 12 and digitos.startswith("258"):
-        return [digitos]
-    if len(digitos) == 9 and digitos[0] == "8":
-        return ["258" + digitos]
-    if len(digitos) == 18:  # dois números juntos
-        return [n for parte in (digitos[:9], digitos[9:]) for n in numeros_whatsapp(parte)]
-    partes = [p for p in re.split(r"[/,;]| e ", str(telefone or "")) if p.strip()]
-    if len(partes) > 1:
-        return [n for p in partes for n in numeros_whatsapp(p)]
-    return []
+    """Números do cadastro no formato do WhatsApp, conforme o país (em Moçambique: '84 727 9956' ->
+    ['258847279956']; dois números juntos ou separados por '/' viram dois)."""
+    return PAIS.numeros_whatsapp(telefone)
 
 
 def _linhas_html(caminho: Path) -> list[list]:

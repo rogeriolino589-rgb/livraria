@@ -1,0 +1,46 @@
+{
+  "_estado": "rascunho - confirmar com a equipa local antes de usar",
+  "nome": "África do Sul",
+  "nome_loja": "CPAD South Africa",
+  "moeda": "ZAR",
+  "simbolo": "R",
+  "simbolo_antes": true,
+  "separador_milhar": " ",
+  "separador_decimal": ".",
+  "fuso": "Africa/Johannesburg",
+  "lingua_clientes": "en",
+  "descricao_lingua": "inglês simples (se o cliente escrever em zulu, xhosa, afrikaans ou português, responda nessa língua se a souber bem; senão, em inglês)",
+  "linguas_locais": [
+    "English",
+    "isiZulu",
+    "isiXhosa",
+    "Afrikaans",
+    "Sesotho",
+    "Setswana"
+  ],
+  "lingua_equipa": "pt",
+  "idioma_modelos_whatsapp": "en",
+  "indicativo": "27",
+  "digitos_nacionais": 9,
+  "prefixos_moveis": [
+    "6",
+    "7",
+    "8"
+  ],
+  "formas_pagamento": [
+    "cartão",
+    "EFT (transferência)",
+    "pagamento por QR code",
+    "numerário"
+  ],
+  "taxa_entrega": 0.0,
+  "imposto_nome": "VAT",
+  "imposto_taxa": 0.15,
+  "id_fiscal": "VAT number",
+  "observacoes": [
+    "Proteção de dados: a lei POPIA exige consentimento para mensagens de marketing.",
+    "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático."
+  ],
+  "desconto_minimo": null
+}

@@ -8,6 +8,8 @@ from typing import Protocol
 
 import httpx
 
+from .pais import PAIS
+
 log = logging.getLogger(__name__)
 
 LIMITE_TEXTO = 4096  # limite do WhatsApp por mensagem de texto
@@ -58,9 +60,9 @@ class CanalWhatsApp:
     """Envia mensagens pela WhatsApp Cloud API (graph.facebook.com)."""
 
     def __init__(self, token: str, phone_number_id: str, versao: str = "v23.0",
-                 idioma_modelos: str = "pt_PT", cliente_http: httpx.Client | None = None):
+                 idioma_modelos: str | None = None, cliente_http: httpx.Client | None = None):
         self.url = f"https://graph.facebook.com/{versao}/{phone_number_id}/messages"
-        self.idioma = idioma_modelos
+        self.idioma = idioma_modelos or PAIS.idioma_modelos_whatsapp
         self.http = cliente_http or httpx.Client(timeout=20)
         self.http.headers["Authorization"] = f"Bearer {token}"
 

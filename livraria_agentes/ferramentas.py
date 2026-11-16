@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 
+from .pais import PAIS
 from .loja import TIPOS_AGENDAMENTO, ErroLoja, Loja
 
 AGENTES_VALIDOS = ["atendimento_vendas", "agendamento", "cobranca", "suporte_posvenda"]
@@ -36,14 +37,14 @@ FERRAMENTAS = [
                 "Busca livros no catálogo por título, autor, gênero ou assunto. Retorna até 8 livros com preço e estoque.",
                 {"consulta": {**TEXTO, "description": "Palavras-chave. Use '' para listar por gênero/preço."},
                  "genero": {**TEXTO_OU_NULO, "description": "Filtro de gênero, ou null."},
-                 "preco_max": {"type": ["number", "null"], "description": "Preço máximo em meticais, ou null."}}),
+                 "preco_max": {"type": ["number", "null"], "description": f"Preço máximo em {PAIS.moeda}, ou null."}}),
     _ferramenta("detalhes_livro", "Mostra todos os dados de um livro, incluindo a sinopse.",
                 {"livro_id": {**TEXTO, "description": "Id do livro, ex.: L001."}}),
     _ferramenta("registrar_cliente", "Salva ou atualiza o nome do cliente desta conversa.",
                 {"nome": TEXTO}),
     _ferramenta("calcular_orcamento",
                 "Calcula o valor de uma compra sem criar o pedido: subtotal, desconto de instituição (se o cliente "
-                "for igreja, instituição, revendedor ou livraria do cadastro e a compra chegar a 5.000 MT: 30% em "
+                "for igreja, instituição, revendedor ou livraria do cadastro e a compra chegar ao mínimo: 30% em "
                 "Livros e Bíblias CPAD e Harpa Cristã, 20% em Lições Bíblicas, 15% no resto), taxa de entrega e total.",
                 {"itens": {"type": "array", "items": {
                     "type": "object",
@@ -58,7 +59,7 @@ FERRAMENTAS = [
                     "properties": {"livro_id": TEXTO, "quantidade": {"type": "integer"}},
                     "required": ["livro_id", "quantidade"], "additionalProperties": False}},
                  "entrega": {"type": "string", "enum": ["retirada", "envio"],
-                             "description": "'retirada' = levantamento na loja (grátis); 'envio' = entrega ao domicílio (taxa de 250,00 MT)."}}),
+                             "description": "'retirada' = levantamento na loja (grátis); 'envio' = entrega ao domicílio (com taxa de entrega)."}}),
     _ferramenta("consultar_pedidos", "Lista os pedidos do cliente desta conversa, com status.", {}),
     _ferramenta("cancelar_pedido", "Cancela um pedido ainda não pago do cliente desta conversa.",
                 {"pedido_id": TEXTO}),

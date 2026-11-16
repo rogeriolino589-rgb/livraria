@@ -36,7 +36,7 @@ três ações para fazer já. Nada de plano genérico: se faltarem dados, liste 
     "publico_concorrentes": ("Pesquisa de público e concorrentes", """\
 Investigação em três camadas, usando a pesquisa na web quando possível (cite fontes e datas):
 1. Demanda: problemas, desejos, dúvidas e objeções de quem procura Bíblias, livros cristãos e material de Escola
-   Dominical em Moçambique; situações que aceleram a compra (datas, eventos de igreja, ofertas para presente).
+   Dominical no país da loja; situações que aceleram a compra (datas, eventos de igreja, ofertas para presente).
 2. Concorrência: oferta, preço, promessa, diferenciação, conteúdo e argumentos de outras livrarias e editoras.
 3. Oportunidades: necessidades pouco atendidas e posicionamentos possíveis.
 Entregue cinco problemas prioritários do público, uma comparação dos concorrentes, cinco oportunidades de
@@ -65,7 +65,7 @@ respeite as políticas de anúncios da Meta e do TikTok e diga o que precisa ser
     "funil": ("Funil de vendas por estados", """\
 Desenhe a jornada: 1) descoberta, 2) interesse (que material gratuito ou conteúdo justifica o contacto — por
 exemplo um plano de leitura bíblica ou uma lição de amostra), 3) captura (como a pessoa pede e recebe, com
-consentimento), 4) confiança, 5) oferta (sem interromper a experiência), 6) conversão (WhatsApp, M-Pesa, loja).
+consentimento), 4) confiança, 5) oferta (sem interromper a experiência), 6) conversão (WhatsApp, pagamento móvel ou loja).
 Para cada estado: gatilho, mensagem, ação da pessoa, próxima etapa e indicador. Escreva os textos do conteúdo
 inicial, CTA, mensagens automáticas, entrega do material e apresentação da oferta. Por fim, percorra o funil como
 um cliente, aponte cinco pontos de abandono e corrija os mais importantes."""),

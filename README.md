@@ -131,6 +131,25 @@ reconhecidas, copie `config/erps.exemplo.json` para `config/erps.json` e escreva
 | `ARQUIVO_DOCUMENTOS` | Pasta onde os documentos copiados dos e-mails são guardados |
 | `LIVRARIA_FUSO` | Fuso horário, ex.: `Africa/Maputo` (padrão) |
 
+## Vários países
+
+Cada país tem um perfil em `config/paises/` e roda a sua própria instalação (dados, catálogo, clientes e
+WhatsApp separados), escolhida com `LIVRARIA_PAIS`:
+
+| Código | País | Moeda | Língua dos clientes | Estado |
+|---|---|---|---|---|
+| `mz` | Moçambique | MZN (MT) | português | em uso |
+| `sz` | Eswatini | SZL (E) | inglês | rascunho a confirmar |
+| `za` | África do Sul | ZAR (R) | inglês | rascunho a confirmar |
+| `cd` | RD Congo | USD ($) | francês | rascunho a confirmar |
+
+O perfil define moeda e formato dos valores, fuso horário, línguas, indicativo e formato dos telemóveis,
+formas de pagamento, taxa de entrega, imposto, identificação fiscal e o mínimo para o desconto de
+instituições (sem mínimo definido, não há desconto automático). Os agentes respondem na língua em que o
+cliente escreve; as mensagens fixas e os modelos do WhatsApp existem em português, inglês e francês. Os
+pontos a confirmar em cada país estão em `observacoes` no próprio perfil. Para várias lojas no mesmo
+servidor, use uma pasta de dados por país (`LIVRARIA_DADOS=dados/estado_za`).
+
 ## Catálogo real da CPAD
 
 ```bash
