@@ -38,11 +38,14 @@ def _cabecalho(caminho: Path) -> tuple[str, str]:
 
 
 def carregar(pasta: Path) -> dict:
-    dados = {"vendedor": {}, "datas": {}, "zonas": {}, "avisos": []}
+    dados = {"vendedor": {}, "datas": {}, "zonas": {}, "tipos": {}, "avisos": []}
     for arq in sorted(Path(pasta).glob("*.xls")):
         agrup, erp = _cabecalho(arq)
         linhas = list(_linhas_xls(arq))
-        if agrup.startswith("Documento, Artigo"):
+        if agrup.startswith("Documento, Artigo") and "Tipo de En" in agrup:
+            # mesma estrutura do relatório por vendedor, mas a linha final é o tipo de entidade do cliente
+            r, chave = ler_linhas(linhas), "tipos"
+        elif agrup.startswith("Documento, Artigo"):
             r, chave = ler_linhas(linhas), "vendedor"
         elif agrup.startswith("Documento"):
             r, chave = ler_datas_linhas(linhas), "datas"
@@ -198,6 +201,48 @@ def gerar(pasta: Path, saida: Path) -> dict:
             fmt(ws, ws.max_row, "E", "F")
     filtro(ws)
 
+    # tipo de cliente de cada documento (relatório "Documento, Artigo resumido a Tipo de Entidade")
+    tipo_doc = {}
+    for erp, r in dados["tipos"].items():
+        for d in r["documentos"]:
+            tipo_doc[(erp, d["tipo"], d["numero"])] = d["nome_vendedor"]
+    sem_tipo = 0
+    for d in vendas:
+        t = tipo_doc.get((d["erp"], d["tipo"], d["numero"]))
+        d["tipo_cliente"] = t
+        d["canal"] = canal(t) if t else None
+        if t is None and d["erp"] in dados["tipos"]:
+            sem_tipo += 1
+    if sem_tipo:
+        dados["avisos"].append(f"{sem_tipo} documento(s) sem tipo de cliente no relatório «Tipo de Entidade»")
+
+    # Varejo x Atacado por dia, mês e ano (loja e cada vendedor), onde há o relatório por tipo de entidade
+    ca = {p: collections.defaultdict(lambda: {"Varejo": [0, 0.0], "Atacado": [0, 0.0], "Sem tipo (N/D)": [0, 0.0]})
+          for p in ("dia", "mes", "ano")}
+    for d in vendas:
+        if not d["canal"]:
+            continue
+        chaves = [("ano", d["ano"])] + ([("dia", d["data"]), ("mes", d["data"][:7])] if d["data"] else [])
+        for p, t in chaves:
+            for quem in ("LOJA (total)", d["nome"]):
+                g = ca[p][(t, d["erp"], quem)][d["canal"]]
+                g[0] += 1 if d["tipo"] in TIPOS_VENDA else 0
+                g[1] += d["liquido"]
+    for titulo, p, rot in (("Varejo×Atacado por dia", "dia", "Data"), ("Varejo×Atacado por mês", "mes", "Mês"),
+                           ("Varejo×Atacado por ano", "ano", "Ano")):
+        ws = folha(titulo, [rot, "Sistema", "Vendedor", "Varejo (MT)", "Atacado (MT)", "Sem tipo (MT)", "Total (MT)",
+                            "% Varejo", "% Atacado", "Docs varejo", "Docs atacado", "Ticket varejo", "Ticket atacado"],
+                   [12, 10, 36, 16, 16, 13, 16, 10, 10, 11, 11, 14, 14])
+        for (t, erp, quem), g in sorted(ca[p].items(), key=lambda i: (i[0][0], i[0][1], i[0][2] != "LOJA (total)", i[0][2])):
+            r = ws.max_row + 1
+            ws.append([t, erp, quem, round(g["Varejo"][1], 2), round(g["Atacado"][1], 2), round(g["Sem tipo (N/D)"][1], 2),
+                       f"=D{r}+E{r}+F{r}", f"=IF(G{r}=0,0,D{r}/G{r})", f"=IF(G{r}=0,0,E{r}/G{r})",
+                       g["Varejo"][0], g["Atacado"][0], f"=IF(J{r}=0,0,D{r}/J{r})", f"=IF(K{r}=0,0,E{r}/K{r})"])
+            fmt(ws, r, "DEFGLM", "HI")
+            if quem == "LOJA (total)":
+                destacar(ws, r)
+        filtro(ws)
+
     # 6-9. Vendedor por dia, semana do mês, mês, ano
     per = {p: collections.defaultdict(lambda: [0, 0.0]) for p in ("dia", "mes", "ano")}
     for d in vendas:
@@ -227,8 +272,9 @@ def gerar(pasta: Path, saida: Path) -> dict:
                "foram cruzados pelo tipo e número com o relatório por Documento (data)."])
     ws.append(["Vendas = V/DIN, FACT e TAL. DEVOL e N/CRE (devoluções e notas de crédito) não contam como documentos "
                "de venda."])
-    ws.append(["Varejo/atacado por dia, mês e ano ainda não: falta um relatório que ligue cada documento ao tipo de "
-               "entidade («Tipo de Entidade, Documento»)."])
+    sem = [e for e in dados["vendedor"] if e not in dados["tipos"]]
+    ws.append(["Varejo/atacado por dia, mês e ano: " + ", ".join(sorted(dados["tipos"]) or ["nenhum sistema"]) +
+               (". Falta exportar «Documento, Artigo resumido a Tipo de Entidade» do " + ", ".join(sem) + "." if sem else ".")])
     ws.append(["Valores sem IVA e com as faturas (FACT). Por isso diferem do Diário de Vendas do caixa (só V/DIN, com IVA): "
                "ex. 02/11/2026 = 66.730,87 em V/DIN + 4,13 de IVA = 66.735,00 do caixa, mais 18.480,00 em faturas."])
     for a in dados["avisos"]:
