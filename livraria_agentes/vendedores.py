@@ -30,7 +30,8 @@ def carregar(arquivo: Path | None = None) -> dict[str, dict]:
     if not caminho.exists():
         return {}
     dados = json.loads(caminho.read_text(encoding="utf-8"))
-    return {linha: v for linha, v in dados.items() if not linha.startswith("_") and v.get("whatsapp")}
+    # vendedor sem WhatsApp ainda recebe as tarefas; o aviso no telemóvel começa quando o número for posto
+    return {linha: v for linha, v in dados.items() if not linha.startswith("_") and v.get("nome")}
 
 
 def linha_do_tipo(tipo: str | None) -> str | None:
@@ -76,6 +77,9 @@ class Avisos:
                  f"(linha {linha})")
         tarefa = loja.criar_tarefa(f"{assunto}: {nome_cliente} (+{telefone_cliente}). {detalhe}",
                                    vendedor["nome"], loja.relogio().date().isoformat())
+        if not vendedor.get("whatsapp"):
+            return {"vendedor": vendedor["nome"], "linha": linha, "enviado": False, "tarefa_id": tarefa["id"],
+                    "aviso": "vendedor sem WhatsApp configurado: só a tarefa foi criada"}
         try:
             self.enviar(vendedor["whatsapp"], texto)
             enviado = True

@@ -72,11 +72,24 @@ def test_falha_no_envio_nao_estraga_o_atendimento(loja):
     assert r["enviado"] is False and loja.listar_tarefas("Maria", True)  # a tarefa fica registada
 
 
-def test_configuracao_sem_numero_e_ignorada(tmp_path):
+def test_vendedor_sem_whatsapp_recebe_so_a_tarefa(tmp_path, loja):
     arq = tmp_path / "v.json"
-    arq.write_text(json.dumps({"_ajuda": "x", "+258 86 504 8400": {"nome": "Maria", "whatsapp": ""},
-                               "+258 84 508 2787": {"nome": "João", "whatsapp": "258840000102"}}))
-    assert list(carregar(arq)) == ["+258 84 508 2787"]
+    arq.write_text(json.dumps({"_ajuda": "x", "+258 86 504 8400": {"nome": "Damião Sebastião Cau", "whatsapp": ""},
+                               "+258 84 468 9369": {"nome": "", "whatsapp": ""}}))
+    vendedores = carregar(arq)
+    assert list(vendedores) == ["+258 86 504 8400"]  # linha sem nome é ignorada
+    enviados = []
+    r = Avisos(lambda n, t: enviados.append(n), vendedores).avisar(loja, IGREJA, "Cliente pede atendimento", "x")
+    assert enviados == [] and r["enviado"] is False
+    assert loja.listar_tarefas("Damião Sebastião Cau", True)
+
+
+def test_exemplo_tem_os_vendedores_da_cpad():
+    from pathlib import Path
+
+    ex = carregar(Path(__file__).resolve().parent.parent / "config" / "vendedores.exemplo.json")
+    assert ex["+258 86 504 8400"]["nome"] == "Damião Sebastião Cau"
+    assert ex["+258 84 508 2787"]["nome"] == "Sérgio Paulo Fernando"
 
 
 def test_fora_da_janela_de_24h_usa_o_modelo_aprovado(loja):

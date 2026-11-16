@@ -1,19 +1,23 @@
 {
-  "_ajuda": "Copie para config/vendedores.json (fica fora do Git) e escreva o nome e o WhatsApp pessoal (só dígitos, com 258) do vendedor de cada linha.",
+  "_ajuda": "Copie para config/vendedores.json (fica fora do Git) e escreva o WhatsApp pessoal (só dígitos, com 258) de cada vendedor. Sem número, o vendedor recebe só as tarefas.",
   "+258 86 504 8400": {
-    "nome": "Vendedor das igrejas",
+    "nome": "Damião Sebastião Cau",
+    "atende": "igrejas",
     "whatsapp": ""
   },
   "+258 84 508 2787": {
-    "nome": "Vendedor de empresas, instituições, livrarias e revendedores",
+    "nome": "Sérgio Paulo Fernando",
+    "atende": "empresas, instituições, revendedores e livrarias",
     "whatsapp": ""
   },
   "+258 84 468 9369": {
-    "nome": "Vendedor do retalho",
+    "nome": "",
+    "atende": "retalho (Clientes VIP, pastores, missionários)",
     "whatsapp": ""
   },
   "+258 87 712 7070": {
-    "nome": "Atendimento internacional",
+    "nome": "",
+    "atende": "atendimento internacional (inglês e francês)",
     "whatsapp": ""
   }
 }
