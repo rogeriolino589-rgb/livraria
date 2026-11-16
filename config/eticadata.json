@@ -12,5 +12,9 @@
     "Dinheiro": "numerario",
     "Numerário Meticais": "numerario",
     "Ponto 24": "cartao"
-  }
+  },
+  "ex_funcionarios": {
+    "6": "Rodrigues Johane — já não está na CPAD; as vendas dele ficam no histórico com o nome"
+  },
+  "_tipos_cliente": "CLIENTE e CLIENTE VIP são o mesmo cliente de retalho (varejo): a nomenclatura mudou de CLIENTE para CLIENTE VIP quando a loja passou para a gestão atual."
 }
