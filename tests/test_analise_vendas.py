@@ -34,3 +34,18 @@ def test_resumo_por_ano_e_vendedor():
 
 def test_total_que_nao_bate():
     assert not ler_linhas(LINHAS[:-1] + [["Total: ", 1.0]])["confere"]
+
+
+def test_tipo_de_cliente_e_zona():
+    from livraria_agentes.interno.analise_vendas import ler_zonas_linhas, segmento
+
+    linhas = [["Análise de Vendas"], ["Vendedor: 2 - Vendedor A"], ["Zona: 11 - MAPUTO"],
+              ["4", "EMPRESAS / INSTITUIÇÕES", 1.0, 900.0, -100.0, 800.0], ["5", "IGREJA", 2.0, 300.0, 0.0, 300.0],
+              ["Total Zona: ", 3.0, 1200.0, -100.0, 1100.0], ["Zona: EXT - Extrangeiro"],
+              ["N/D", "N/D", 1.0, 50.0, 0.0, 50.0], ["Total: ", 4.0, 1250.0, -100.0, 1150.0]]
+    r = ler_zonas_linhas(linhas)
+    assert r["confere"] and [(x["vendedor"], x["zona"], x["segmento"]) for x in r["registos"]] == [
+        ("2", "Maputo", "Empresas e instituições"), ("2", "Maputo", "Igrejas"), ("2", "Extrangeiro", "Sem tipo (N/D)")]
+    # o código 4 era LIVRARIA no ERP19: o segmento vem da descrição, não do código
+    assert segmento("LIVRARIA") == "Livrarias e revendedores" and segmento("IGREJA EBD/ LIVRARIA") == "Livrarias e revendedores"
+    assert segmento("CLIENTE VIP") == segmento("PASTOR") == segmento("MISSIONARIOS")

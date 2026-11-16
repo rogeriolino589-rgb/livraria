@@ -72,6 +72,57 @@ def ler_xls(caminho: Path) -> dict:
     return ler_linhas(_linhas_xls(Path(caminho)))
 
 
+# ----------------------------------------- "Vendedor, Zona resumido a Tipo de Entidade" (tipo de cliente e zona)
+# Os códigos de tipo de entidade mudaram do ERP19 para o ERP22 (ex.: 4 = LIVRARIA no ERP19, EMPRESAS no ERP22);
+# por isso o segmento vem da DESCRIÇÃO, alinhado com as linhas de atendimento da loja.
+SEGMENTOS = [
+    ("Igrejas", ("IGREJA",)),
+    ("Livrarias e revendedores", ("LIVRARIA", "REVENDEDOR")),
+    ("Empresas e instituições", ("EMPRESA", "INSTITUI")),
+    ("Retalho (clientes, VIP, pastores, missionários)", ("CLIENTE", "PASTOR", "MISSION")),
+]
+
+
+def segmento(descricao: str) -> str:
+    d = descricao.upper()
+    if "PASTOR REVENDEDOR" in d or "EBD/ LIVRARIA" in d or "EBD/LIVRARIA" in d:
+        return "Livrarias e revendedores"
+    for nome, chaves in SEGMENTOS:
+        if any(c in d for c in chaves):
+            return nome
+    return "Sem tipo (N/D)"
+
+
+def ler_zonas_linhas(linhas) -> dict:
+    registos, vendedor, zona, total = [], None, None, None
+    for linha in linhas:
+        v = [x for x in linha if str(x).strip() != ""]
+        if not v:
+            continue
+        a = str(v[0])
+        if a.startswith("Vendedor:"):
+            vendedor = a.split(":", 1)[1].strip()
+        elif a.startswith("Zona:"):
+            zona = a.split(":", 1)[1].strip()
+        elif a.startswith("Total: "):
+            total = float(v[-1])
+        elif a.startswith("Total"):
+            continue
+        elif vendedor and zona and len(v) == 6 and all(isinstance(x, float) for x in v[2:]):
+            codigo, _, nome_vend = vendedor.partition(" - ")
+            registos.append({"vendedor": codigo.strip(), "nome_vendedor": (nome_vend or codigo).strip(),
+                             "zona": zona.split(" - ", 1)[-1].strip().title(), "tipo": str(v[1]).strip(),
+                             "segmento": segmento(str(v[1])), "quantidade": v[2], "bruto": v[3],
+                             "desconto": v[4], "liquido": v[5]})
+    soma = round(sum(r["liquido"] for r in registos), 2)
+    return {"registos": registos, "total_relatorio": total, "soma": soma,
+            "confere": total is None or abs(soma - total) < 0.01}
+
+
+def ler_zonas_xls(caminho: Path) -> dict:
+    return ler_zonas_linhas(_linhas_xls(Path(caminho)))
+
+
 def resumo(documentos: list[dict], nomes: dict[str, str] | None = None) -> list[dict]:
     """Por ano e vendedor. `nomes` substitui o nome do relatório (ex.: {"3": "José Tovela (INATIVO)"})."""
     nomes = nomes or {}
