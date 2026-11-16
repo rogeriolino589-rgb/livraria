@@ -24,7 +24,7 @@ import threading
 from collections import OrderedDict
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from .canal import CanalWhatsApp
 from .motor import Motor
@@ -111,6 +111,18 @@ def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret:
     @app.get("/")
     def saude() -> dict:
         return {"ok": True}
+
+    @app.get("/campanha", response_class=HTMLResponse)
+    def campanha_do_dia(chave: str = "", linha: str = "") -> HTMLResponse:
+        """Links do dia para os vendedores (protegido por CAMPANHA_CHAVE)."""
+        from .campanha import Campanha
+        from .config import PASTA_ESTADO
+
+        esperada = os.environ.get("CAMPANHA_CHAVE", "")
+        if not esperada or not hmac.compare_digest(chave, esperada):
+            raise HTTPException(status_code=403, detail="Chave inválida")
+        campanha = Campanha(motor.loja, PASTA_ESTADO / "campanha")
+        return HTMLResponse(campanha.pagina(campanha.lote(), linha or None))
 
     @app.get("/webhook")
     def verificar(request: Request) -> PlainTextResponse:

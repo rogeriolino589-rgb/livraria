@@ -31,6 +31,8 @@ ESFORCO = os.environ.get("LIVRARIA_ESFORCO", "medium")  # low | medium | high
 MAX_PASSOS = 12  # chamadas ao modelo por mensagem do cliente
 BETA_FALLBACK = "server-side-fallback-2026-07-01"
 
+PALAVRAS_SAIR = {"sair", "stop", "parar", "cancelar", "arret", "arreter", "unsubscribe"}
+MARCAS_CAMPANHA = ("responda sair", "reply stop", "repondez stop")  # mensagens da campanha (enviadas por link)
 PALAVRA_DEVOLVER = "#robo"  # escrita pelo vendedor na app: o cliente volta para o robô
 HORAS_DEVOLVER = 24  # sem resposta humana pela app há mais do que isto, o robô volta a atender
 
@@ -105,6 +107,12 @@ class Motor:
     def humano_respondeu_pela_app(self, telefone: str, texto: str) -> str:
         """Um vendedor respondeu ao cliente pela app WhatsApp Business (coexistência). O robô cala-se nesta
         conversa; se a mensagem tiver #robo, devolve o cliente ao robô. Devolve 'assumiu' ou 'devolveu'."""
+        if any(marca in normalizar_palavra(texto) for marca in MARCAS_CAMPANHA):
+            # Mensagem da campanha enviada pelo link: não é o vendedor a assumir; o robô atende a resposta.
+            estado = self.carregar(telefone)
+            estado["avisos_pendentes"].append(f"A loja enviou a este contacto a mensagem de apresentação: «{texto}»")
+            self.salvar(estado)
+            return "campanha"
         if PALAVRA_DEVOLVER in normalizar_palavra(texto):
             self.registrar_resposta_humana(telefone, texto)
             self.liberar_humano(telefone)
@@ -130,6 +138,11 @@ class Motor:
     # ----------------------------------------------------------- conversa
     def responder(self, telefone: str, texto: str) -> Resposta:
         estado = self.carregar(telefone)
+        if normalizar_palavra(texto).strip(" .!") in PALAVRAS_SAIR:
+            self.loja.registrar_optout(telefone)
+            lingua = "fr" if normalizar_palavra(texto).strip(" .!") in ("arret", "arreter") else (
+                "en" if normalizar_palavra(texto).strip(" .!") in ("stop", "unsubscribe") else None)
+            return Resposta([t("optout_ok", lingua)], estado["agente"], estado["aguardando_humano"])
         ultima = estado.get("humano_ultima_resposta")
         if estado["aguardando_humano"] and ultima and (
                 self.loja.relogio() - datetime.fromisoformat(ultima)).total_seconds() > HORAS_DEVOLVER * 3600:

@@ -86,6 +86,28 @@ def mensagens_de_tarefas(loja: Loja) -> dict[str, str]:
     return mensagens
 
 
+def _resumo_campanha(loja: Loja) -> str:
+    """Gera o lote do dia da campanha e devolve uma linha para o resumo da manhã (com o link da página)."""
+    from ..campanha import Campanha
+    from ..config import PASTA_ESTADO
+
+    try:
+        campanha = Campanha(loja, PASTA_ESTADO / "campanha")
+        if not campanha.arq_leads.exists() and not loja.dados.get("cadastro_clientes"):
+            return ""
+        lote = campanha.lote()
+    except Exception:
+        log.exception("Falha ao gerar o lote da campanha")
+        return ""
+    partes = [f"{linha}: {len(fila)}" for linha, fila in lote["linhas"].items() if fila]
+    if not partes:
+        return "\n\n📣 Campanha: lista completa, nada para enviar hoje."
+    url = os.environ.get("SERVIDOR_URL", "").rstrip("/")
+    chave = os.environ.get("CAMPANHA_CHAVE", "")
+    acesso = f"\nLinks do dia: {url}/campanha?chave={chave}" if url and chave else ""
+    return "\n\n📣 Campanha de hoje (contactos por linha): " + "; ".join(partes) + acesso
+
+
 def _enviar(canal, assistente: Assistente, telefone: str, nome: str, texto: str) -> None:
     estado = assistente.carregar(f"whatsapp-{telefone}")
     estado.setdefault("resumos_pendentes", []).append(texto)
@@ -104,6 +126,8 @@ def rodar(rotina: str, loja: Loja, assistente: Assistente, canal=None) -> dict:
     pedido = (PEDIDO_MANHA if rotina == "manha" else PEDIDO_NOITE).format(dia=dia, loja=NOME_LOJA)
     resumo = "\n\n".join(assistente.responder(f"rotina-{rotina}-{momento.date().isoformat()}", pedido,
                                               "rotina automática"))
+    if rotina == "manha":
+        resumo += _resumo_campanha(loja)
     envios = {}
     principal = destinatario_principal()
     if principal:

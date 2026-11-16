@@ -104,6 +104,7 @@ class Loja:
         for chave in ("tarefas", "pedidos_oracao"):
             self.dados.setdefault(chave, [])
         self.dados.setdefault("contatos", {})
+        self.dados.setdefault("optout", {})  # quem pediu para não receber mensagens da campanha
 
     # ---------------------------------------------------------------- base
     def salvar(self) -> None:
@@ -609,4 +610,9 @@ class Loja:
                 p["entregue_em"] = self.relogio().isoformat(timespec="minutes")
             self.salvar()
         return {"ok": True, "pedido_id": pedido_id, "status": estado}
+
+    def registrar_optout(self, telefone: str) -> None:
+        with self._trava:
+            self.dados["optout"][telefone] = self.relogio().isoformat(timespec="minutes")
+            self.salvar()
 

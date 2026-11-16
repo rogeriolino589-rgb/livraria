@@ -29,6 +29,7 @@ TEXTOS = {
         "tarefas_nenhuma": "Não tem tarefas atribuídas para hoje.",
         "tarefas_sem_responsavel": "Há {n} tarefa(s) da loja ainda sem responsável.",
         "tarefas_fim": "Quando terminar uma, avise aqui. Deus abençoe!",
+        "optout_ok": "Está bem, não voltaremos a enviar-lhe mensagens. Se precisar de nós, é só escrever aqui. Deus abençoe!",
     },
     "en": {
         "instabilidade": "Sorry, we had a technical problem. Could you send your message again in a moment? 🙏",
@@ -51,6 +52,7 @@ TEXTOS = {
         "tarefas_nenhuma": "You have no tasks assigned for today.",
         "tarefas_sem_responsavel": "There are {n} shop task(s) with no one assigned yet.",
         "tarefas_fim": "When you finish one, let us know here. God bless!",
+        "optout_ok": "Done, we won't send you more messages. If you ever need us, just write here. God bless!",
     },
     "fr": {
         "instabilidade": "Désolé, nous avons eu un problème technique. Pouvez-vous renvoyer votre message dans un instant ? 🙏",
@@ -73,6 +75,7 @@ TEXTOS = {
         "tarefas_nenhuma": "Vous n'avez pas de tâche attribuée aujourd'hui.",
         "tarefas_sem_responsavel": "Il y a {n} tâche(s) de la librairie sans responsable.",
         "tarefas_fim": "Quand vous en terminez une, prévenez ici. Que Dieu vous bénisse !",
+        "optout_ok": "C'est noté, nous ne vous enverrons plus de messages. Si vous avez besoin de nous, écrivez ici. Que Dieu vous bénisse !",
     },
 }
 

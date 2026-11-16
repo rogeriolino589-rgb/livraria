@@ -138,6 +138,10 @@ FERRAMENTAS = [
                 {"mes": {"type": "string", "enum": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                                                     "Julho", "Agosto", "Setembro", "Outubro", "Novembro",
                                                     "Dezembro"]}}),
+    # campanha de contacto
+    _ferramenta("campanha_progresso",
+                "Progresso da campanha de contacto (clientes do cadastro e leads): quantos já foram contactados e "
+                "quantos faltam em cada linha, e quantos pediram para sair da lista.", {}),
     # redes sociais
     _ferramenta("post_salvar",
                 "Guarda um rascunho de post para a equipe revisar e publicar. Nada é publicado automaticamente.",
@@ -277,6 +281,11 @@ def executar(ctx: Contexto, nome: str, e: dict) -> str:
         r = ctx.loja.resumo_clientes()
     elif nome == "clientes_aniversariantes":
         r = ctx.loja.aniversariantes(e["mes"])
+    elif nome == "campanha_progresso":
+        from ..campanha import Campanha
+        from ..config import PASTA_ESTADO
+
+        r = Campanha(ctx.loja, PASTA_ESTADO / "campanha").progresso()
     elif nome == "post_salvar":
         r = ctx.base.salvar_post(e["rede"], e["texto"], e.get("sugestao_imagem"))
     elif nome == "posts_listar":

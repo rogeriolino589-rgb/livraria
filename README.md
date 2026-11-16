@@ -127,6 +127,22 @@ responda aqui para ver."
 
 Durante o piloto, quem acompanhar a app da linha de retalho é quem atende os clientes passados a uma pessoa.
 
+### Campanha progressiva de contacto
+
+```bash
+python -m livraria_agentes.campanha importar-leads "CPAD ERP Moçambique — Livraria.html"   # leads do Caçador
+python -m livraria_agentes.campanha lote --html hoje.html    # lote do dia (o mesmo se já foi gerado)
+python -m livraria_agentes.campanha progresso
+```
+
+Cada dia sai o lote seguinte da lista (cadastro primeiro, depois leads de prioridade alta, média e o resto), sem
+repetir ninguém até completar. Cada contacto vai para a linha certa: em Moçambique, igrejas → Damião, empresas,
+instituições, livrarias e revendedores → Sérgio, os restantes (e leads sem tipo) como Cliente VIP → retalho; fora
+de Moçambique, linha internacional, mantendo a distinção igreja / instituição / VIP. Para cada um há um link
+wa.me com a mensagem já escrita (português, inglês ou francês conforme o indicativo), com "responda SAIR". Quem
+responde SAIR/STOP sai da lista para sempre. A página do dia está em `/campanha?chave=CAMPANHA_CHAVE` (e
+`&linha=...` para uma só linha) e o link vai no resumo das 7h30. Limite por linha e países em `config/campanha.json`.
+
 ### Atendimento humano
 Quando um agente chama um atendente, ou quando alguém da equipa responde ao cliente pela app WhatsApp Business
 (coexistência), o robô para de responder aquele cliente. Para lhe devolver o cliente, escreva `#robo` na
