@@ -256,7 +256,7 @@ class Base:
 
         Com o Mapa de Caixa do mesmo dia, confere os dois antes de gravar: se não baterem, não grava nada.
         Reimportar o mesmo dia substitui os documentos desse dia (a versão mais nova manda)."""
-        from .mapas_eticadata import conferir, ler_diario_vendas, ler_mapa_caixa
+        from .mapas_eticadata import configuracao, conferir, ler_diario_vendas, ler_mapa_caixa, nome_vendedor
 
         diario = ler_diario_vendas(texto_diario)
         if not diario["documentos"]:
@@ -271,8 +271,9 @@ class Base:
             return {"ok": True, "aviso": "Este Diário de Vendas já tinha sido importado.", "arquivo": nome}
         datas = sorted({d["data"] for d in diario["documentos"]})
         erp = next((e for e, (a, b) in self.periodos.items() if a <= datas[0] <= b), "erp22")
-        registros = [(erp, normalizar_documento(d["documento"]), d["data"], d["vendedor"], diario["seccao"], None,
-                      d["total"], nome, n) for n, d in enumerate(diario["documentos"], start=1)]
+        cfg = configuracao()
+        registros = [(erp, normalizar_documento(d["documento"]), d["data"], nome_vendedor(d["vendedor"], cfg),
+                      diario["seccao"], None, d["total"], nome, n) for n, d in enumerate(diario["documentos"], start=1)]
         with self.db:
             apagadas = self.db.execute("DELETE FROM vendas WHERE erp = ? AND data BETWEEN ? AND ?",
                                        (erp, datas[0], datas[-1])).rowcount
@@ -282,7 +283,8 @@ class Base:
                              datetime.now().isoformat(timespec="minutes")))
         return {"ok": True, "erp": erp, "arquivo": nome, "documentos": len(registros), "total": diario["total"],
                 "descontos": diario["descontos"], "por_meio_pagamento": diario["por_meio_pagamento"],
-                "por_vendedor": diario["por_vendedor"], "impostos": diario["impostos"], "substituidas": apagadas,
+                "por_vendedor": {nome_vendedor(k, cfg): v for k, v in diario["por_vendedor"].items()},
+                "impostos": diario["impostos"], "substituidas": apagadas,
                 "conferido_com_caixa": caixa is not None,
                 "fundo_caixa": caixa["fundo_caixa"] if caixa else None}
 

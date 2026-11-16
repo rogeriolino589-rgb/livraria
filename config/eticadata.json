@@ -1,0 +1,11 @@
+{
+  "_ajuda": "Códigos usados nos mapas do Eticadata (ERP19/ERP22). 'vendedores': código do vendedor no Diário de Vendas -> nome. 'meios_pagamento': nome no Mapa de Caixa -> forma de pagamento do ERP da CPAD.",
+  "vendedores": {
+    "2": "Guacha",
+    "7": "Damião Sebastião Cau"
+  },
+  "meios_pagamento": {
+    "Dinheiro": "numerario",
+    "Ponto 24": "cartao"
+  }
+}

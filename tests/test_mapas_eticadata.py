@@ -64,3 +64,8 @@ def test_nao_grava_se_nao_bater(tmp_path):
 def test_email_resumo_diario_e_relatorio():
     r = classificar("Resumo de vendas diário", "loja@exemplo.mz", ["Caixa 03.11.pdf", "DiarioVendas 03.11.pdf"])
     assert r["tipo"] == "relatorio_vendas" and r["guardar"]
+
+
+def test_vendedores_pelo_nome(tmp_path):
+    r = Base(tmp_path / "b.db").importar_diario_vendas(DIARIO, CAIXA)
+    assert r["por_vendedor"] == {"Damião Sebastião Cau (7)": 4000.0, "Guacha (2)": 450.0}

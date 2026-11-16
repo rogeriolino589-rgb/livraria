@@ -19,6 +19,21 @@ from datetime import datetime
 NUM = r"-?\d{1,3}(?:\.\d{3})*,\d{2}"  # formato do Eticadata: 1.234,56
 
 
+def configuracao() -> dict:
+    """config/eticadata.json: nomes dos vendedores por código e meios de pagamento."""
+    import json
+
+    from ..pais import _achar
+
+    arq = _achar("config/eticadata.json")
+    return json.loads(arq.read_text(encoding="utf-8")) if arq and arq.exists() else {}
+
+
+def nome_vendedor(codigo: str, config: dict | None = None) -> str:
+    nome = (config if config is not None else configuracao()).get("vendedores", {}).get(str(codigo))
+    return f"{nome} ({codigo})" if nome else str(codigo)
+
+
 def _n(texto: str) -> float:
     return float(texto.replace(".", "").replace(",", "."))
 
