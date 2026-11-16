@@ -87,7 +87,7 @@ let _hvFP=null;function hvFP(){if(_hvFP)return _hvFP;_hvFP={};(hvDados().fp||[])
  Object.values(_hvFP).forEach(a=>{const t={};a.forEach(([k,f,v])=>{t[k]=(t[k]||0)+v});a.forEach(x=>{if(t[x[0]]<0)x[2]=0})});return _hvFP}
 function hvEntradas(){const dias={};hvDados().dias.forEach(r=>{const g=dias[r[0]]||(dias[r[0]]={b:0,r:0,i:0,n:0});g.b+=r[5]+r[7];g.r+=(r[9]||0);g.i+=(r[8]||0)+(r[10]||0);g.n+=r[3]});return dias}
 async function hvLancarFinanceiro(){if(!window.FIN){toast('Financeiro indisponível.',1);return}
- const F=await FIN.get(),ja=new Set((F.mov||[]).filter(m=>m.tipo==='E'&&String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('hist-')!==0).map(m=>m.data));
+ const F=await FIN.get(),ja=new Set((F.mov||[]).filter(m=>m.tipo==='E'&&String(m.cat).indexOf('Vendas')===0&&(String(m.id).indexOf('hist-')!==0||m.ed)).map(m=>m.data));
  const anosOreate=new Set((F.mov||[]).filter(m=>String(m.nota||'').indexOf('Oreate')===0).map(m=>String(m.data).slice(0,4)));
  const dias=hvEntradas(),novas=[];let saltados=0,tot=0,comFP=0;
  for(const [d,g] of Object.entries(dias).sort()){if(ja.has(d)||anosOreate.has(d.slice(0,4))){saltados++;continue}
@@ -97,9 +97,9 @@ async function hvLancarFinanceiro(){if(!window.FIN){toast('Financeiro indisponí
   else [['b','Vendas — balcão',b],['r','Vendas — revendedores',r],['i','Vendas — igrejas e instituições',i]].forEach(([k,cat,v])=>{v=Math.round(v*100)/100;if(v>0){novas.push({id:'hist-'+d+'-'+k,data:d,tipo:'E',cat,parte:'Eticadata — Análise de Vendas',fp:HV_FP,valor:v,nota:'Histórico Eticadata · sem IVA · '+g.n+' docs · forma de pagamento por confirmar'});tot+=v}})}
  const antigos=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')===0).length;
  if(!confirm('Lançar '+novas.length.toLocaleString('pt-PT')+' entradas de vendas no Financeiro ('+Object.keys(dias).length.toLocaleString('pt-PT')+' dias de 2016 a hoje, '+hvM2(tot)+').\n\n'+saltados+' dias ficam de fora porque já têm vendas lançadas (os anos importados do Oreate, como 2025, ficam inteiros como estão).'+(antigos?'\n'+antigos+' lançamentos anteriores do histórico serão substituídos.':'')+'\n\n'+comFP.toLocaleString('pt-PT')+' entradas levam a forma de pagamento real do Diário de Vendas (ERP19 e ERP22, cruzado por documento): Dinheiro, Cartão / POS, Transferência, Cheque, misto ou a crédito (faturas). O que não aparece no Diário fica «Por confirmar».\n\nAs entradas aparecem em Vendas, Faturamento, Metas e relatórios. Por serem histórico (sem as despesas e depósitos desses anos), não mexem no saldo de caixa e bancos.'))return;
- F.mov=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')!==0);await FIN.addMany(novas);
+ const diasEd=new Set((F.mov||[]).filter(m=>m.ed).map(m=>m.data));F.mov=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')!==0||m.ed||diasEd.has(m.data));await FIN.addMany(novas);
  toast(novas.length.toLocaleString('pt-PT')+' entradas lançadas no Financeiro.');render()}
 async function hvRetirarFinanceiro(){if(!window.FIN)return;const F=await FIN.get(),n=(F.mov||[]).filter(m=>String(m.id).indexOf('hist-')===0).length;
  if(!n){toast('Não há entradas do histórico no Financeiro.');return}if(!confirm('Retirar as '+n+' entradas do histórico do Financeiro?'))return;
- F.mov=F.mov.filter(m=>String(m.id).indexOf('hist-')!==0);await FIN.addMany([]);toast('Entradas do histórico retiradas.');render()}
+ F.mov=F.mov.filter(m=>String(m.id).indexOf('hist-')!==0||m.ed);await FIN.addMany([]);toast('Entradas do histórico retiradas.');render()}
 document.addEventListener('click',e=>{const b=e.target.closest('#liv [data-lb2]');if(!b)return;if(b.dataset.lb2==='hvf')hvLancarFinanceiro();if(b.dataset.lb2==='hvr')hvRetirarFinanceiro()});
