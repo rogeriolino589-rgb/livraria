@@ -19,5 +19,19 @@ troca("#erpLoad{","body.app-on #fbar,body.app-on #stats,body.app-on #list,body.a
 # lançamentos do histórico (forma de pagamento por confirmar) não mexem no caixa nem nos bancos
 troca("function delta(x){const v=+x.valor||0,din=isCash(x.fp);","function delta(x){if(String(x.id).indexOf('hist-')===0)return[0,0];const v=+x.valor||0,din=isCash(x.fp);")
 troca("k=isCash(x.fp)?s.din:s.ban;","k=String(x.id).indexOf('hist-')===0?{vE:0,vS:0,lev:0,dep:0}:isCash(x.fp)?s.din:s.ban;")
+# mapas recebidos por e-mail (Diário de Vendas + Mapa de Caixa) prontos a carregar no módulo «Mapas do Eticadata»
+import glob,json
+pend=[]
+for f in sorted(glob.glob(S+'/mapas_email/*_diario.txt')):
+    dia=os.path.basename(f)[:10];c=f.replace('_diario.txt','_caixa.txt')
+    pend.append({'data':dia,'d':open(f,encoding='utf-8').read(),'c':open(c,encoding='utf-8').read() if os.path.exists(c) else ''})
+troca(" let h='<div class=\"card\"><b>📥 Mapas do Eticadata — vendas do dia</b>",
+ " const pe=etiPend().filter(x=>!D.mapas.some(m=>m.data===x.data));\n let h=(pe.length&&!etiT.d?'<div class=\"card\" style=\"border-color:var(--ac)\"><b>📧 Mapas recebidos por e-mail</b><p class=\"m\">Lidos do e-mail «Resumo de vendas diário» da loja. Carregue para conferir e gravar.</p>'+pe.map(x=>'<button class=\"b\" data-lb2=\"mep\" data-i=\"'+x.data+'\">📥 '+fdt(x.data)+'</button> ').join('')+'</div>':'')+'<div class=\"card\"><b>📥 Mapas do Eticadata — vendas do dia</b>")
+troca("let etiT={d:'',c:''};","let etiT={d:'',c:''};\nfunction etiPend(){try{return JSON.parse(document.getElementById('etiPend').textContent||'[]')}catch(e){return[]}}")
+troca(" if(a==='mex'){etiT={d:'',c:''};render();return}"," if(a==='mex'){etiT={d:'',c:''};render();return}\n if(a==='mep'){const x=etiPend().find(x=>x.data===b.dataset.i);if(x){etiT={d:x.d,c:x.c};render()}return}")
+# o mapa do dia substitui as entradas do histórico (Análise de Vendas) desse dia; não conta como duplicado
+troca("String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('eti-')!==0);","String(m.cat).indexOf('Vendas')===0&&String(m.id).indexOf('eti-')!==0&&String(m.id).indexOf('hist-')!==0);")
+troca("if(!dup){for(const m of (F.mov||[]).filter(m=>String(m.id).indexOf('eti-'+dia+'-')===0))await FIN.delMov(m.id);","if(!dup){for(const m of (F.mov||[]).filter(m=>String(m.id).indexOf('eti-'+dia+'-')===0||String(m.id).indexOf('hist-'+dia+'-')===0))await FIN.delMov(m.id);")
+s=s.replace('<script id="histData" type="application/json">','<script id="etiPend" type="application/json">'+json.dumps(pend,ensure_ascii=False).replace('</','<\\/')+'</script>\n<script id="histData" type="application/json">')
 open(S+'/superapp/index.html','w',encoding='utf-8').write(s)
 print('index.html',os.path.getsize(S+'/superapp/index.html'))
