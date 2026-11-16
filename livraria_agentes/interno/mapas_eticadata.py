@@ -146,20 +146,24 @@ _LINHA_P = re.compile(
 # meio de pagamento do Eticadata -> forma de pagamento do Financeiro do superapp
 FORMAS_FINANCEIRO = {
     "Dinheiro": "Dinheiro", "Numerário Meticais": "Dinheiro", "Ponto 24": "Cartão / POS",
-    "Transferência": "Transferência bancária", "Cheque": "Cheque",
-    "Crédito Conta Corrente": "Crédito (conta corrente)",
+    "Transferência": "Transferência bancária", "Trasnferencia": "Transferência bancária",  # grafia do ERP19
+    "Cheque": "Cheque", "Crédito Conta Corrente": "Crédito (conta corrente)", "Crédito CC": "Crédito (conta corrente)",
+    "Vale de Reembolso": "Vale de reembolso",
 }
 
 
 def forma_financeiro(meio: str) -> str:
-    """Um meio só vai para a forma equivalente; meios combinados («Dinheiro / Ponto 24») ficam como «Misto: …»,
-    porque o diário só traz o total do documento e não a parte paga em cada meio."""
-    meio = (meio or "").strip()
-    if meio in FORMAS_FINANCEIRO:
-        return FORMAS_FINANCEIRO[meio]
-    if "/" in meio:
-        return "Misto: " + " + ".join(FORMAS_FINANCEIRO.get(p.strip(), p.strip()) for p in meio.split("/"))
-    return meio or "Por confirmar"
+    """Forma de pagamento do Financeiro para o meio do Eticadata. Meios combinados («Dinheiro / Ponto 24») ficam
+    «Misto: …», porque o diário só traz o total do documento e não a parte paga em cada meio; meios repetidos
+    («Ponto 24 / Ponto 24», dois pagamentos com cartão) contam como um só."""
+    partes = []
+    for p in (meio or "").split("/"):
+        f = FORMAS_FINANCEIRO.get(p.strip(), p.strip())
+        if f and f not in partes:
+            partes.append(f)
+    if not partes:
+        return "Por confirmar"
+    return partes[0] if len(partes) == 1 else "Misto: " + " + ".join(sorted(partes))
 
 
 def ler_diario_periodo(texto: str) -> dict:

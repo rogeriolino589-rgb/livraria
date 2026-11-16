@@ -102,5 +102,8 @@ def test_diario_periodo_milhares_com_espaco_e_tipos_sem_barra():
     assert d["data"] == "2026-09-24" and d["vendedor"] == "7" and d["meio"] == "Ponto 24" and d["total"] == -6490.0
     assert r["documentos"][("V/DIN", "2026-005926")]["meio"] == "Dinheiro / Ponto 24"
     assert forma_financeiro("Ponto 24") == "Cartão / POS"
-    assert forma_financeiro("Dinheiro / Ponto 24") == "Misto: Dinheiro + Cartão / POS"
+    assert forma_financeiro("Dinheiro / Ponto 24") == "Misto: Cartão / POS + Dinheiro"
     assert forma_financeiro("") == "Por confirmar"
+    assert forma_financeiro("Ponto 24 / Ponto 24") == "Cartão / POS"
+    assert forma_financeiro("Numerário Meticais / Trasnferencia / Numerário Meticais") == "Misto: Dinheiro + Transferência bancária"
+    assert forma_financeiro("Crédito CC") == "Crédito (conta corrente)"
