@@ -19,10 +19,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo  # noqa: F401
 
-from .pais import PAIS
+from .pais import PAIS, _achar
 
 FUSO = PAIS.tz
-SEMENTE = Path(__file__).resolve().parent.parent / "dados" / "loja_inicial.json"
+SEMENTE = _achar("dados/loja_inicial.json")
 
 # Horário de funcionamento para agendamentos: segunda (0) a sábado (5).
 DIAS_ABERTOS = range(0, 6)

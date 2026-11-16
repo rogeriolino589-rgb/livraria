@@ -15,7 +15,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-PASTA_PAISES = Path(__file__).resolve().parent.parent / "config" / "paises"
+def _achar(relativo: str) -> Path:
+    """Procura junto ao código (checkout) e depois na pasta de trabalho (instalação com pip / Docker)."""
+    for base in (Path(__file__).resolve().parent.parent, Path.cwd()):
+        if (base / relativo).exists():
+            return base / relativo
+    return Path.cwd() / relativo
+
+
+PASTA_PAISES = Path(os.environ.get("LIVRARIA_PAISES", _achar("config/paises")))
 
 
 @dataclass(frozen=True)
