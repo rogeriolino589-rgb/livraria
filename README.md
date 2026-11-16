@@ -83,6 +83,13 @@ Em **WhatsApp Manager > Modelos de mensagem**, crie em português (pt_PT), categ
 modelos `lembrete_pagamento` e `pos_venda` com os textos de `MODELOS` em `livraria_agentes/lembretes.py`.
 Depois de aprovados: `python -m livraria_agentes.lembretes --whatsapp` (uma vez por dia).
 
+### Várias linhas de WhatsApp
+
+Em Moçambique há uma linha por tipo de cliente: igrejas (+258 86 504 8400), venda a retalho (+258 84 468 9369),
+livrarias e revendedores (+258 84 508 2787) e atendimento internacional em inglês e francês (+258 87 712 7070).
+Se várias linhas forem ligadas à mesma conta da Meta, o servidor responde sempre pelo número em que o cliente
+escreveu, e os agentes indicam a linha certa conforme o tipo do cliente (`contactos_por_tipo` no perfil do país).
+
 ### Atendimento humano
 Quando um agente chama um atendente, o robô para de responder aquele cliente.
 

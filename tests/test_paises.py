@@ -89,3 +89,11 @@ def test_robo_das_mauricias_e_pagamento_no_pdv():
                          "from livraria_agentes.interno.ferramentas import FORMAS_PAGAMENTO; "
                          "print(SISTEMA); print(FORMAS_PAGAMENTO)")
     assert "MCB Juice (MCB)" in saida and "Rs 1,250.00" in saida and "'blink'" in saida
+
+
+def test_linhas_de_atendimento_por_tipo_de_cliente():
+    from livraria_agentes.agentes import SISTEMA
+
+    assert "Igreja, Pastor, Missionário, Empresa / instituição: +258 86 504 8400" in SISTEMA
+    assert "Revendedor, Pastor revendedor, Livraria: +258 84 508 2787" in SISTEMA
+    assert "Cliente VIP, Cliente, sem cadastro: +258 84 468 9369" in SISTEMA

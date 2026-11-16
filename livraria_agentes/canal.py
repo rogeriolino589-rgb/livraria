@@ -25,13 +25,13 @@ class Canal(Protocol):
 
 
 class CanalTerminal:
-    def enviar(self, telefone: str, texto: str) -> None:
+    def enviar(self, telefone: str, texto: str, de: str | None = None) -> None:
         print(f"\n📤 Para {telefone}:\n{texto}\n")
 
     def enviar_modelo(self, telefone: str, modelo: str, parametros: list[str], texto: str) -> None:
         print(f"\n📤 Para {telefone} (modelo {modelo}):\n{texto}\n")
 
-    def marcar_lida(self, mensagem_id: str) -> None:
+    def marcar_lida(self, mensagem_id: str, de: str | None = None) -> None:
         pass
 
 
@@ -61,7 +61,9 @@ class CanalWhatsApp:
 
     def __init__(self, token: str, phone_number_id: str, versao: str = "v23.0",
                  idioma_modelos: str | None = None, cliente_http: httpx.Client | None = None):
-        self.url = f"https://graph.facebook.com/{versao}/{phone_number_id}/messages"
+        self.base = f"https://graph.facebook.com/{versao}"
+        self.phone_number_id = phone_number_id  # número padrão (envios iniciados pela loja)
+        self.url = f"{self.base}/{phone_number_id}/messages"
         self.idioma = idioma_modelos or PAIS.idioma_modelos_whatsapp
         self.http = cliente_http or httpx.Client(timeout=20)
         self.http.headers["Authorization"] = f"Bearer {token}"
@@ -74,17 +76,19 @@ class CanalWhatsApp:
         return cls(os.environ["WHATSAPP_TOKEN"], os.environ["WHATSAPP_PHONE_NUMBER_ID"],
                    os.environ.get("WHATSAPP_API_VERSION", "v23.0"))
 
-    def _post(self, corpo: dict) -> dict:
-        resp = self.http.post(self.url, json={"messaging_product": "whatsapp", **corpo})
+    def _post(self, corpo: dict, de: str | None = None) -> dict:
+        """`de`: id do número da loja que envia (para responder pelo mesmo número em que o cliente escreveu)."""
+        url = f"{self.base}/{de}/messages" if de else self.url
+        resp = self.http.post(url, json={"messaging_product": "whatsapp", **corpo})
         if resp.is_error:
             log.error("WhatsApp recusou o envio (%s): %s", resp.status_code, resp.text)
             resp.raise_for_status()
         return resp.json()
 
-    def enviar(self, telefone: str, texto: str) -> None:
+    def enviar(self, telefone: str, texto: str, de: str | None = None) -> None:
         for parte in _partes(texto):
             self._post({"recipient_type": "individual", "to": telefone, "type": "text",
-                        "text": {"body": parte, "preview_url": True}})
+                        "text": {"body": parte, "preview_url": True}}, de)
 
     def enviar_modelo(self, telefone: str, modelo: str, parametros: list[str], texto: str) -> None:
         self._post({"to": telefone, "type": "template", "template": {
@@ -92,9 +96,9 @@ class CanalWhatsApp:
             "components": [{"type": "body",
                             "parameters": [{"type": "text", "text": p} for p in parametros]}]}})
 
-    def marcar_lida(self, mensagem_id: str) -> None:
+    def marcar_lida(self, mensagem_id: str, de: str | None = None) -> None:
         """Mostra os dois tiques azuis para o cliente. Falha aqui não impede a resposta."""
         try:
-            self._post({"status": "read", "message_id": mensagem_id})
+            self._post({"status": "read", "message_id": mensagem_id}, de)
         except httpx.HTTPError:
             log.warning("Não consegui marcar a mensagem %s como lida", mensagem_id)

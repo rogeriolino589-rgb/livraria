@@ -33,6 +33,11 @@ POLITICAS = f"""\
     f"- Catálogo geral da CPAD (para consulta; preços e stock locais vêm sempre das ferramentas): "
     f"{PAIS.catalogo_url}\n" if PAIS.catalogo_url else "")
 
+_LINHAS = "".join(f"\n  - {', '.join(tipos)}: {numero}" for numero, tipos in PAIS.contactos_por_tipo.items())
+_CONTACTO_CERTO = (f"""- Cada tipo de cliente tem a sua linha de atendimento. Quando o cliente pedir um contacto, quiser
+  falar com uma pessoa ou precisar de condições especiais, indique a linha certa para o tipo dele (veja o cadastro
+  no contexto; quem não está no cadastro é tratado como cliente particular):{_LINHAS}""" if _LINHAS else "")
+
 _REGRA_DESCONTO = (f"""- Desconto de instituições (o único que existe): igrejas, instituições, revendedores e livrarias registados
   no cadastro da CPAD, em compras a partir de {_DESCONTO_MIN} em produtos, têm 30% nos Livros CPAD, Bíblias CPAD
   e Harpa Cristã, 20% nas Lições Bíblicas e 15% em todo o resto (outras marcas, CDs, DVDs, brindes...). O
@@ -135,6 +140,7 @@ Siga as instruções do agente ativo e use só as ferramentas dele.
   Igreja, revendedor, livraria ou empresa: são compras em quantidade; ajude com o que pedirem e, para
   condições especiais, preços de revenda ou faturas em nome da instituição, chame um atendente.
 {_REGRA_DESCONTO}
+{_CONTACTO_CERTO}
 - Se a pessoa disser que é de uma igreja ou instituição mas não estiver no cadastro, não aplique desconto:
   chame um atendente para confirmar. Nenhum outro desconto, promoção ou condição pode ser prometido.
 

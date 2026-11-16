@@ -88,20 +88,20 @@ def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret:
         with travas_trava:
             return travas.setdefault(telefone, threading.Lock())
 
-    def atender(telefone: str, mensagem_id: str, texto: str | None) -> None:
+    def atender(telefone: str, mensagem_id: str, texto: str | None, de: str | None = None) -> None:
         # Uma mensagem por vez para cada cliente, na ordem em que chegaram.
         with trava_do(telefone):
             try:
-                canal.marcar_lida(mensagem_id)
+                canal.marcar_lida(mensagem_id, de)
                 if texto is None:
-                    canal.enviar(telefone, MSG_SO_TEXTO)
+                    canal.enviar(telefone, MSG_SO_TEXTO, de)
                     return
                 if telefone in equipe and assistente is not None:
                     textos = assistente.responder(f"whatsapp-{telefone}", texto, equipe[telefone])
                 else:
                     textos = motor.responder(telefone, texto).textos
                 for parte in textos:
-                    canal.enviar(telefone, parte)
+                    canal.enviar(telefone, parte, de)
             except Exception:
                 log.exception("Erro ao atender %s (mensagem %s)", telefone, mensagem_id)
 
@@ -130,7 +130,9 @@ def criar_app(motor: Motor, canal: CanalWhatsApp, verify_token: str, app_secret:
                     if not recentes.novo(msg["id"]):
                         continue
                     # Responde 200 na hora; o Claude roda em segundo plano (a Meta reenvia se demorar).
-                    tarefas.add_task(atender, msg["from"], msg["id"], extrair_texto(msg))
+                    # responde pelo mesmo número da loja em que o cliente escreveu (igrejas, retalho, revenda...)
+                    de = valor.get("metadata", {}).get("phone_number_id")
+                    tarefas.add_task(atender, msg["from"], msg["id"], extrair_texto(msg), de)
                 # "statuses" (entregue, lido, falhou) só aparecem no log.
                 for status in valor.get("statuses", []):
                     if status.get("status") == "failed":

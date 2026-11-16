@@ -151,3 +151,20 @@ def test_numero_da_equipe_vai_para_o_assistente_interno(tmp_path, canal, meta):
     respostas = {e["to"]: e["text"]["body"] for e in meta.envios if e.get("type") == "text"}
     assert respostas == {"258840000010": "Ontem: 12 documentos no ERP19.",
                          "258851234567": "Olá! Procura algum livro?"}
+
+
+def test_responde_pelo_mesmo_numero_da_loja(tmp_path, meta):
+    """Com várias linhas (igrejas, retalho, revenda), a resposta sai do número em que o cliente escreveu."""
+    enviados = []
+
+    def transporte(request):
+        enviados.append(request.url.path)
+        return httpx.Response(200, json={})
+
+    canal = CanalWhatsApp("TOKEN", "123", cliente_http=httpx.Client(transport=httpx.MockTransport(transporte)))
+    cliente, _ = _app(tmp_path, canal, [_msg(_texto("Paz do Senhor!"))])
+    corpo_dict = _webhook({"from": "258841234567", "id": "wamid.Z", "type": "text", "text": {"body": "oi"}})
+    corpo_dict["entry"][0]["changes"][0]["value"]["metadata"]["phone_number_id"] = "999"  # linha das igrejas
+    corpo = json.dumps(corpo_dict).encode()
+    cliente.post("/webhook", content=corpo, headers=_assinar(corpo))
+    assert enviados == ["/v23.0/999/messages", "/v23.0/999/messages"]  # marcar como lida + resposta
