@@ -16,7 +16,8 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-NUM = r"-?\d{1,3}(?:\.\d{3})*,\d{2}"  # formato do Eticadata: 1.234,56
+# ERP22 escreve 1.234,56; o ERP19 (2016–jul/2022) escreve 1,234.56. Os dois formatos são aceites.
+NUM = r"-?\d{1,3}(?:[.,]\d{3})*[.,]\d{2}"
 
 
 def configuracao() -> dict:
@@ -35,7 +36,9 @@ def nome_vendedor(codigo: str, config: dict | None = None) -> str:
 
 
 def _n(texto: str) -> float:
-    return float(texto.replace(".", "").replace(",", "."))
+    """O separador decimal é o que está antes dos 2 últimos algarismos; o outro é de milhares."""
+    texto = texto.strip()
+    return float(re.sub(r"[.,]", "", texto[:-3]) + "." + texto[-2:])
 
 
 def _data(texto: str) -> str:

@@ -69,3 +69,21 @@ def test_email_resumo_diario_e_relatorio():
 def test_vendedores_pelo_nome(tmp_path):
     r = Base(tmp_path / "b.db").importar_diario_vendas(DIARIO, CAIXA)
     assert r["por_vendedor"] == {"Damião Sebastião Cau (7)": 4000.0, "Guacha (2)": 450.0}
+
+
+ERP19 = (
+    "CASA PUBLICADORA EXEMPLO  Diário de Vendas  Por Tipo de Documento  Secção: SEDE  Período:   De 28/07/2022 das "
+    "00:00 Até 28/07/2022 às 23:59 ;   Moeda:   MT  Secção: Sede  "
+    "28/07/2022   V/DIN 2022-039883   7   Numerário Meticais   55.00   0.00   0.00   0.00   55.00   55.00   0.00 "
+    "28/07/2022   V/DIN 2022-039888   3   Ponto 24   1,900.00   -285.00   0.00   0.00   1,615.00   1,615.00   0.00 "
+    " -285.00 Subtotal Sede:   1,670.00 Quadro Resumo do Impostos Sede Código   Valor Incidência Taxa  1   0.00   "
+    "1,670.00   0.00 0.00  DiarioVendasTpDoc.Rpt")
+
+
+def test_formato_do_erp19(tmp_path):
+    d = ler_diario_vendas(ERP19)
+    assert [(x["meio_pagamento"], x["total"], x["descontos"]) for x in d["documentos"]] == [
+        ("Numerário Meticais", 55.0, 0.0), ("Ponto 24", 1615.0, -285.0)]
+    assert d["total"] == 1670.0 and d["impostos"][0]["incidencia"] == 1670.0
+    r = Base(tmp_path / "b.db").importar_diario_vendas(ERP19)
+    assert r["erp"] == "erp19" and r["documentos"] == 2

@@ -6,6 +6,7 @@
   },
   "meios_pagamento": {
     "Dinheiro": "numerario",
+    "Numerário Meticais": "numerario",
     "Ponto 24": "cartao"
   }
 }
