@@ -68,7 +68,7 @@ def test_email_resumo_diario_e_relatorio():
 
 def test_vendedores_pelo_nome(tmp_path):
     r = Base(tmp_path / "b.db").importar_diario_vendas(DIARIO, CAIXA)
-    assert r["por_vendedor"] == {"Damião Sebastião Cau (7)": 4000.0, "Guacha (2)": 450.0}
+    assert r["por_vendedor"] == {"Damião Sebastião Cau (7)": 4000.0, "Sérgio Paulo Fernando (Guacha) (2)": 450.0}
 
 
 ERP19 = (

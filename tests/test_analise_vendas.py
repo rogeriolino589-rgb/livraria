@@ -49,3 +49,25 @@ def test_tipo_de_cliente_e_zona():
     # o código 4 era LIVRARIA no ERP19: o segmento vem da descrição, não do código
     assert segmento("LIVRARIA") == "Livrarias e revendedores" and segmento("IGREJA EBD/ LIVRARIA") == "Livrarias e revendedores"
     assert segmento("CLIENTE VIP") == segmento("PASTOR") == segmento("MISSIONARIOS")
+
+
+def test_varejo_e_atacado():
+    from livraria_agentes.interno.analise_vendas import canal
+
+    for d in ("CLIENTE", "CLIENTE VIP", "PASTOR", "MISSIONARIOS"):
+        assert canal(d) == "Varejo", d
+    for d in ("LIVRARIA", "LIVRARIA CRISTA", "IGREJA", "IGREJA EBD", "IGREJA EBD/ LIVRARIA", "REVENDEDOR",
+              "PASTOR REVENDEDOR", "EMPRESAS / INSTITUIÇÕES"):
+        assert canal(d) == "Atacado", d
+    assert canal("N/D") == "Sem tipo (N/D)"
+
+
+def test_artigos_e_datas():
+    from livraria_agentes.interno.analise_vendas import ler_datas_linhas
+
+    itens = ler_linhas(LINHAS)["itens"]
+    assert [(i["numero"], i["artigo"], i["vendedor"], i["liquido"]) for i in itens[:2]] == [
+        ("2025-000001", "1", "2", 900.0), ("2025-000001", "2", "2", 600.0)]
+    r = ler_datas_linhas([["V/DIN", "2025-000001", "05/11/2025", 3.0, 1600.0, -100.0, 1500.0],
+                          ["Total: ", 3.0, 1600.0, -100.0, 1500.0]])
+    assert r["confere"] and r["datas"][("V/DIN", "2025-000001")] == "2025-11-05"

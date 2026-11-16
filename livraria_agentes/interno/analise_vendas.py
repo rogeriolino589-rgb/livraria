@@ -35,7 +35,8 @@ def _linhas_xls(caminho: Path):
 def ler_linhas(linhas) -> dict:
     """Interpreta as linhas do relatório (listas de células, já sem formatação)."""
     docs: dict[tuple, dict] = {}
-    atual, total = None, None
+    itens: list[dict] = []
+    atual, artigo, total = None, None, None
     for linha in linhas:
         v = [x for x in linha if str(x).strip() != ""]
         if not v:
@@ -44,12 +45,19 @@ def ler_linhas(linhas) -> dict:
         if a.startswith("Documento:"):
             tipo, numero = [x.strip() for x in a.split(":", 1)[1].split(" - ", 1)]
             atual = (tipo.upper(), numero)
+        elif a.startswith("Artigo:"):
+            cod, _, nome = a.split(":", 1)[1].strip().partition(" - ")
+            artigo = (cod.strip(), nome.strip())
         elif a.startswith("Total: "):
             total = float(v[-1])
-        elif a.startswith(("Artigo:", "Total")):
+        elif a.startswith("Total"):
             continue
         elif atual and len(v) == 6 and all(isinstance(x, float) for x in v[2:]):
             codigo = str(v[0]).removesuffix(".0")
+            if artigo:
+                itens.append({"tipo": atual[0], "numero": atual[1], "ano": atual[1][:4], "artigo": artigo[0],
+                              "nome_artigo": artigo[1], "vendedor": codigo, "quantidade": v[2], "bruto": v[3],
+                              "desconto": v[4], "liquido": v[5]})
             d = docs.setdefault(atual, {"tipo": atual[0], "numero": atual[1], "ano": atual[1][:4],
                                         "por_vendedor": collections.Counter(), "nomes": {},
                                         "quantidade": 0.0, "bruto": 0.0, "desconto": 0.0, "liquido": 0.0})
@@ -64,12 +72,33 @@ def ler_linhas(linhas) -> dict:
                            "nome_vendedor": d["nomes"][vendedor], "vendedores": len(d["por_vendedor"]),
                            **{c: round(d[c], 2) for c in ("quantidade", "bruto", "desconto", "liquido")}})
     soma = round(sum(d["liquido"] for d in documentos), 2)
-    return {"documentos": documentos, "total_relatorio": total, "soma": soma,
+    return {"documentos": documentos, "itens": itens, "total_relatorio": total, "soma": soma,
             "confere": total is None or abs(soma - total) < 0.01}
 
 
 def ler_xls(caminho: Path) -> dict:
     return ler_linhas(_linhas_xls(Path(caminho)))
+
+
+def ler_datas_linhas(linhas) -> dict:
+    """Relatório "Análise de Vendas — Documento": abreviatura, nº, data, qtd, valor, desconto, líquido."""
+    import re
+
+    datas, total, soma = {}, None, 0.0
+    for linha in linhas:
+        v = [x for x in linha if str(x).strip() != ""]
+        if len(v) == 7 and re.fullmatch(r"\d{2}/\d{2}/\d{4}", str(v[2]).strip()):
+            d, m, a = str(v[2]).strip().split("/")
+            datas[(str(v[0]).strip().upper(), str(v[1]).strip())] = f"{a}-{m}-{d}"
+            soma += v[6]
+        elif v and str(v[0]).startswith("Total: "):
+            total = float(v[-1])
+    return {"datas": datas, "total_relatorio": total, "soma": round(soma, 2),
+            "confere": total is None or abs(soma - total) < 0.01}
+
+
+def ler_datas_xls(caminho: Path) -> dict:
+    return ler_datas_linhas(_linhas_xls(Path(caminho)))
 
 
 # ----------------------------------------- "Vendedor, Zona resumido a Tipo de Entidade" (tipo de cliente e zona)
@@ -81,6 +110,15 @@ SEGMENTOS = [
     ("Empresas e instituições", ("EMPRESA", "INSTITUI")),
     ("Retalho (clientes, VIP, pastores, missionários)", ("CLIENTE", "PASTOR", "MISSION")),
 ]
+
+
+def canal(descricao: str) -> str:
+    """Varejo: cliente, cliente VIP, pastor, missionário. Atacado (compras a grosso): livrarias, igrejas,
+    revendedores, pastor revendedor, empresas e instituições. Sem tipo: N/D (fica fora dos dois)."""
+    s = segmento(descricao)
+    if s.startswith("Retalho"):
+        return "Varejo"
+    return "Sem tipo (N/D)" if s.startswith("Sem tipo") else "Atacado"
 
 
 def segmento(descricao: str) -> str:
