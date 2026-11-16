@@ -41,6 +41,15 @@ FERRAMENTAS = [
                 {"livro_id": {**TEXTO, "description": "Id do livro, ex.: L001."}}),
     _ferramenta("registrar_cliente", "Salva ou atualiza o nome do cliente desta conversa.",
                 {"nome": TEXTO}),
+    _ferramenta("calcular_orcamento",
+                "Calcula o valor de uma compra sem criar o pedido: subtotal, desconto de instituição (se o cliente "
+                "for igreja, instituição, revendedor ou livraria do cadastro e a compra chegar a 5.000 MT: 30% em "
+                "produtos CPAD e 15% nos outros), taxa de entrega e total.",
+                {"itens": {"type": "array", "items": {
+                    "type": "object",
+                    "properties": {"livro_id": TEXTO, "quantidade": {"type": "integer"}},
+                    "required": ["livro_id", "quantidade"], "additionalProperties": False}},
+                 "entrega": {"type": "string", "enum": ["retirada", "envio"]}}),
     _ferramenta("criar_pedido",
                 "Cria um pedido para o cliente desta conversa e devolve o link de pagamento. "
                 "Só use depois que o cliente confirmar os livros, as quantidades e a forma de entrega.",
@@ -99,6 +108,8 @@ def executar(loja: Loja, telefone: str, nome: str, entrada: dict) -> str:
         r = loja.detalhes_livro(e["livro_id"])
     elif nome == "registrar_cliente":
         r = loja.registrar_cliente(telefone, e["nome"])
+    elif nome == "calcular_orcamento":
+        r = loja.orcamento(telefone, e["itens"], e["entrega"])
     elif nome == "criar_pedido":
         r = loja.criar_pedido(telefone, e["itens"], e["entrega"])
     elif nome == "consultar_pedidos":

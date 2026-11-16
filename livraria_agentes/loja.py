@@ -34,6 +34,26 @@ VAGAS_POR_HORARIO = 2
 PRAZO_PAGAMENTO_DIAS = 2
 FRETE_FIXO = 250.0  # meticais
 
+# Política de descontos da CPAD Moçambique para compras de instituições (pode ser ajustada em
+# loja.json -> config -> desconto_instituicoes). O mínimo conta só os produtos, sem a taxa de entrega.
+POLITICA_DESCONTO = {
+    "tipos": ["Igreja", "Empresa / instituição", "Revendedor", "Pastor revendedor", "Livraria"],
+    "minimo": 5000.0,
+    "taxa_cpad": 0.30,
+    "taxa_outras": 0.15,
+}
+# Prefixos de ISBN / código de barras de produtos da CPAD (para os que não estão numa categoria "CPAD -").
+PREFIXOS_CPAD = ("9788526", "9798526", "7908234", "7898203")
+
+
+def meticais(valor: float) -> str:
+    """1234.5 -> '1.234,50'."""
+    return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def eh_marca_cpad(livro: dict) -> bool:
+    return (livro.get("marca") == "CPAD" or str(livro.get("isbn") or "").startswith(PREFIXOS_CPAD))
+
 
 class ErroLoja(Exception):
     """Erro de regra de negócio, com mensagem para o agente repassar."""
@@ -156,7 +176,7 @@ class Loja:
             achados.append((pontos, livro))
         achados.sort(key=lambda par: (-par[0], par[1].get("estoque", 0) <= 0, par[1]["titulo"]))
         return [
-            {k: livro.get(k) for k in ("id", "titulo", "autor", "genero", "preco", "estoque", "isbn")
+            {k: livro.get(k) for k in ("id", "titulo", "autor", "genero", "marca", "preco", "estoque", "isbn")
              if livro.get(k) not in (None, "")}
             for _, livro in achados[:10]
         ]
@@ -165,38 +185,73 @@ class Loja:
         return dict(self._livro(livro_id))
 
     # -------------------------------------------------------------- pedidos
-    def criar_pedido(self, telefone: str, itens: list[dict], entrega: str) -> dict:
+    def politica_desconto(self) -> dict:
+        return {**POLITICA_DESCONTO, **self.dados.get("config", {}).get("desconto_instituicoes", {})}
+
+    def orcamento(self, telefone: str, itens: list[dict], entrega: str) -> dict:
+        """Calcula o pedido com a política de descontos para igrejas, instituições, revendedores e livrarias:
+        com compras a partir do mínimo (5.000 MT em produtos), 30% nos produtos da marca CPAD e 15% nos outros."""
         if not itens:
-            raise ErroLoja("O pedido precisa de pelo menos um livro.")
+            raise ErroLoja("O pedido precisa de pelo menos um produto.")
         if entrega not in ("retirada", "envio"):
             raise ErroLoja("Entrega deve ser 'retirada' ou 'envio'.")
+        regra = self.politica_desconto()
+        linhas, subtotal = [], 0.0
+        for item in itens:
+            livro = self._livro(item["livro_id"])
+            qtd = int(item["quantidade"])
+            if qtd < 1:
+                raise ErroLoja("Quantidade deve ser pelo menos 1.")
+            if not livro.get("preco"):
+                raise ErroLoja(f"'{livro['titulo']}' está sem preço no sistema; chame um atendente.")
+            if livro["estoque"] < qtd:
+                raise ErroLoja(f"Só há {livro['estoque']} unidade(s) de '{livro['titulo']}' em estoque.")
+            valor = round(livro["preco"] * qtd, 2)
+            linhas.append({"livro_id": livro["id"], "titulo": livro["titulo"], "quantidade": qtd,
+                           "preco_unitario": livro["preco"], "valor": valor,
+                           "marca_cpad": eh_marca_cpad(livro)})
+            subtotal += valor
+        subtotal = round(subtotal, 2)
+        tipo = self.ficha_cliente(telefone).get("tipo")
+        elegivel = tipo in regra["tipos"]
+        aplica = elegivel and subtotal >= regra["minimo"]
+        desconto_total = 0.0
+        for linha in linhas:
+            taxa = (regra["taxa_cpad"] if linha["marca_cpad"] else regra["taxa_outras"]) if aplica else 0.0
+            linha["desconto_pct"] = round(taxa * 100)
+            linha["desconto"] = round(linha["valor"] * taxa, 2)
+            linha["valor_final"] = round(linha["valor"] - linha["desconto"], 2)
+            desconto_total += linha["desconto"]
+        frete = FRETE_FIXO if entrega == "envio" else 0.0
+        if aplica:
+            info = f"Desconto de instituição aplicado ({tipo}): 30% em produtos CPAD e 15% nos outros."
+        elif elegivel:
+            info = (f"{tipo}: faltam {meticais(regra['minimo'] - subtotal)} MT em produtos para ter 30% de desconto "
+                    "nos produtos CPAD e 15% nos outros.")
+        else:
+            info = ("Sem desconto: o desconto é para igrejas, instituições, revendedores e livrarias registados no "
+                    "cadastro da CPAD; se o cliente disser que é um deles, um atendente confirma.")
+        return {"itens": linhas, "subtotal_produtos": subtotal, "desconto": round(desconto_total, 2),
+                "entrega": entrega, "frete": frete, "total": round(subtotal - desconto_total + frete, 2),
+                "tipo_cliente": tipo, "desconto_aplicado": aplica, "desconto_info": info}
+
+    def criar_pedido(self, telefone: str, itens: list[dict], entrega: str) -> dict:
         if not self.nome_cliente(telefone):
             raise ErroLoja("Registre o nome do cliente (registrar_cliente) antes de criar o pedido.")
         with self._trava:
-            linhas, subtotal = [], 0.0
-            for item in itens:
-                livro = self._livro(item["livro_id"])
-                qtd = int(item["quantidade"])
-                if qtd < 1:
-                    raise ErroLoja("Quantidade deve ser pelo menos 1.")
-                if not livro.get("preco"):
-                    raise ErroLoja(f"'{livro['titulo']}' está sem preço no sistema; chame um atendente.")
-                if livro["estoque"] < qtd:
-                    raise ErroLoja(f"Só há {livro['estoque']} unidade(s) de '{livro['titulo']}' em estoque.")
-                linhas.append({"livro_id": livro["id"], "titulo": livro["titulo"], "quantidade": qtd,
-                               "preco_unitario": livro["preco"]})
-                subtotal += livro["preco"] * qtd
-            for linha in linhas:
+            conta = self.orcamento(telefone, itens, entrega)
+            for linha in conta["itens"]:
                 self._livro(linha["livro_id"])["estoque"] -= linha["quantidade"]
-            frete = FRETE_FIXO if entrega == "envio" else 0.0
             momento = self.relogio()
             pedido = {
                 "id": _novo_id("PED"),
                 "telefone": telefone,
-                "itens": linhas,
+                "itens": conta["itens"],
                 "entrega": entrega,
-                "frete": frete,
-                "total": round(subtotal + frete, 2),
+                "subtotal_produtos": conta["subtotal_produtos"],
+                "desconto": conta["desconto"],
+                "frete": conta["frete"],
+                "total": conta["total"],
                 "status": "aguardando_pagamento",
                 "criado_em": momento.isoformat(timespec="minutes"),
                 "vencimento": (momento.date() + timedelta(days=PRAZO_PAGAMENTO_DIAS)).isoformat(),
@@ -205,11 +260,11 @@ class Loja:
                 "pos_venda_enviado": False,
             }
             self.dados["pedidos"].append(pedido)
-            self._nova_tarefa(f"Separar o pedido {pedido['id']} ({len(linhas)} item(ns), "
+            self._nova_tarefa(f"Separar o pedido {pedido['id']} ({len(conta['itens'])} item(ns), "
                               f"{'entrega ao domicílio' if entrega == 'envio' else 'levantamento na loja'}) "
                               "e aguardar a confirmação do pagamento", None, None, "pedido")
             self.salvar()
-        return {**pedido, "link_pagamento": self._link(pedido)}
+        return {**pedido, "desconto_info": conta["desconto_info"], "link_pagamento": self._link(pedido)}
 
     def consultar_pedidos(self, telefone: str) -> list[dict]:
         return [p for p in self.dados["pedidos"] if p["telefone"] == telefone]

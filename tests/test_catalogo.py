@@ -36,7 +36,7 @@ def loja(tmp_path):
 
 def test_importa_da_pagina_do_erp(loja, tmp_path):
     r = importar(loja, _pagina(tmp_path, PRODUTOS))
-    assert r == {"produtos": 5, "com_preco": 4, "com_preco_e_stock": 3,
+    assert r == {"produtos": 5, "com_preco": 4, "com_preco_marca_cpad": 2, "com_preco_e_stock": 3,
                  "por_categoria": {"Bíblias": 2, "Lições Bíblicas (Escola Dominical)": 1, "Livros": 1}}
     assert loja.detalhes_livro("01230")["genero"] == "Bíblias"
     assert loja.dados["pedidos"]  # o resto da loja continua igual
@@ -68,4 +68,5 @@ def test_importa_de_planilha(loja, tmp_path):
     wb.save(tmp_path / "produtos.xlsx")
     assert importar(loja, tmp_path / "produtos.xlsx")["com_preco_e_stock"] == 1
     assert loja.detalhes_livro("A1") | {} == {"id": "A1", "isbn": "978", "titulo": "HARPA CRISTA GRANDE", "autor": "",
-                                             "genero": "Harpa Cristã", "preco": 650.0, "estoque": 4, "sinopse": ""}
+                                             "genero": "Harpa Cristã", "preco": 650.0, "estoque": 4, "sinopse": "",
+                                             "marca": ""}

@@ -153,6 +153,14 @@ moçambicanos passam ao formato do WhatsApp; quando um cliente da lista escreve,
 o tipo e a cidade. A equipa procura clientes e aniversariantes no assistente interno. São dados pessoais:
 ficam só na base do robô (fora do Git), e mensagens de marketing só para quem aceitou receber.
 
+## Descontos para instituições
+
+Igrejas, empresas/instituições, revendedores (incluindo pastores revendedores) e livrarias registados no
+cadastro, em compras a partir de **5.000 MT em produtos** (sem a taxa de entrega): **30% nos produtos da
+marca CPAD** e **15% nos outros**. Produto CPAD = categoria "CPAD - ..." no ERP ou ISBN/código de barras da
+CPAD (978-85-263, 7908234, 7898203). O sistema calcula sozinho no orçamento e no pedido; quem não está no
+cadastro como instituição fala com um atendente. Ajustável em `loja.json` → `config` → `desconto_instituicoes`.
+
 ## O dia a dia da loja (os 7 trabalhos)
 
 | Trabalho | Quem faz |

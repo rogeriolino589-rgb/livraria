@@ -22,7 +22,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from .loja import ErroLoja, Loja
+from .loja import PREFIXOS_CPAD, ErroLoja, Loja
 
 CATEGORIAS = {
     "BIBILIAS": "Bíblias", "BIBLIAS": "Bíblias", "CPAD - BIBLIAS": "Bíblias",
@@ -87,7 +87,9 @@ def converter(linhas: list[list]) -> list[dict]:
         vistos.add(codigo)
         livros.append({"id": codigo, "isbn": str(isbn or "").strip(), "titulo": " ".join(str(titulo).split()),
                        "autor": "", "genero": CATEGORIAS.get(str(categoria).strip().upper(), str(categoria).title()),
-                       "preco": round(float(preco or 0), 2), "estoque": max(int(stock or 0), 0), "sinopse": ""})
+                       "preco": round(float(preco or 0), 2), "estoque": max(int(stock or 0), 0), "sinopse": "",
+                       "marca": "CPAD" if str(categoria).strip().upper().startswith("CPAD")
+                       or str(isbn or "").startswith(PREFIXOS_CPAD) else ""})
     return livros
 
 
@@ -102,6 +104,7 @@ def importar(loja: Loja, caminho: Path) -> dict:
         loja.salvar()
     com_preco = [l for l in livros if l["preco"] > 0]
     return {"produtos": len(livros), "com_preco": len(com_preco),
+            "com_preco_marca_cpad": sum(1 for l in com_preco if l["marca"] == "CPAD"),
             "com_preco_e_stock": sum(1 for l in com_preco if l["estoque"] > 0),
             "por_categoria": {c: sum(1 for l in com_preco if l["genero"] == c)
                               for c in sorted({l["genero"] for l in com_preco})}}
