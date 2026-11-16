@@ -250,6 +250,42 @@ class Base:
                 "totais consolidados (podem ser documentos migrados do outro sistema).")
         return resultado
 
+    def importar_diario_vendas(self, texto_diario: str, texto_caixa: str | None = None,
+                               nome: str = "DiarioVendas") -> dict:
+        """Importa o Diário de Vendas do Eticadata (texto do PDF diário). O ERP é escolhido pela data.
+
+        Com o Mapa de Caixa do mesmo dia, confere os dois antes de gravar: se não baterem, não grava nada.
+        Reimportar o mesmo dia substitui os documentos desse dia (a versão mais nova manda)."""
+        from .mapas_eticadata import conferir, ler_diario_vendas, ler_mapa_caixa
+
+        diario = ler_diario_vendas(texto_diario)
+        if not diario["documentos"]:
+            raise ErroDados("Nenhum documento reconhecido no Diário de Vendas.")
+        caixa = ler_mapa_caixa(texto_caixa) if texto_caixa else None
+        avisos = conferir(diario, caixa) if caixa else []
+        if avisos:
+            return {"ok": False, "erro": "O Diário de Vendas não bate com o Mapa de Caixa; nada foi gravado.",
+                    "diferencas": avisos}
+        hash_ = hashlib.sha256(texto_diario.encode()).hexdigest()
+        if self._q("SELECT 1 FROM importacoes WHERE hash = ?", (hash_,)):
+            return {"ok": True, "aviso": "Este Diário de Vendas já tinha sido importado.", "arquivo": nome}
+        datas = sorted({d["data"] for d in diario["documentos"]})
+        erp = next((e for e, (a, b) in self.periodos.items() if a <= datas[0] <= b), "erp22")
+        registros = [(erp, normalizar_documento(d["documento"]), d["data"], d["vendedor"], diario["seccao"], None,
+                      d["total"], nome, n) for n, d in enumerate(diario["documentos"], start=1)]
+        with self.db:
+            apagadas = self.db.execute("DELETE FROM vendas WHERE erp = ? AND data BETWEEN ? AND ?",
+                                       (erp, datas[0], datas[-1])).rowcount
+            self.db.executemany("INSERT INTO vendas VALUES (?,?,?,?,?,?,?,?,?)", registros)
+            self.db.execute("INSERT INTO importacoes VALUES (?,?,?,?,?,?,?)",
+                            (hash_, erp, nome, len(registros), datas[0], datas[-1],
+                             datetime.now().isoformat(timespec="minutes")))
+        return {"ok": True, "erp": erp, "arquivo": nome, "documentos": len(registros), "total": diario["total"],
+                "descontos": diario["descontos"], "por_meio_pagamento": diario["por_meio_pagamento"],
+                "por_vendedor": diario["por_vendedor"], "impostos": diario["impostos"], "substituidas": apagadas,
+                "conferido_com_caixa": caixa is not None,
+                "fundo_caixa": caixa["fundo_caixa"] if caixa else None}
+
     def importar_pasta(self, pasta: Path) -> list[dict]:
         """Importa os relatórios novos de pasta/erp19 e pasta/erp22."""
         resultados = []

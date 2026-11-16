@@ -24,7 +24,8 @@ def _sem_acentos(texto: str) -> str:
 # Ordem importa: o primeiro que bate decide.
 REGRAS: list[tuple[str, str, str]] = [
     # (tipo, onde procurar: "assunto" | "anexo" | "texto" | "tudo", expressão)
-    ("relatorio_vendas", "assunto", r"\bvendas cpad\b|\bfaturamento\b.*\bfilial\b"),
+    ("relatorio_vendas", "assunto", r"\bvendas cpad\b|\bresumo de vendas\b|\bfaturamento\b.*\bfilial\b"),
+    ("relatorio_vendas", "anexo", r"diariovendas|\bcaixa \d{2}\.\d{2}"),
     ("relatorio_vendas", "anexo", r"faturamento\s*-\s*filial"),
     ("extracto_fornecedor", "tudo", r"\bextracto de conta\b|\bextrato de conta\b|\bconta corrente\b"),
     ("bordero_pagamento", "tudo", r"\bbordero|\btransferencias?_entre_contas|\bordem de pagamento\b"
