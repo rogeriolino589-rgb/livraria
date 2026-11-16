@@ -1,10 +1,14 @@
 {
-  "_ajuda": "Campanha progressiva. por_linha_por_dia: quantos contactos novos cada linha recebe por dia (comece baixo para não bloquear o número). paises_excluidos: países fora da campanha (ex.: \"Brasil\").",
+  "_ajuda": "Campanha progressiva. por_linha_por_dia: contactos novos por linha por dia (comece baixo para não bloquear o número). limites_por_linha: limite próprio de uma linha (ex.: subir o retalho para 80 depois do piloto). paises_excluidos: países fora da campanha. cadastro_no_retalho: clientes do cadastro de Moçambique vão todos para a linha de retalho (os de outros países vão para a linha internacional).",
   "por_linha_por_dia": 40,
   "paises_excluidos": [
     "Brasil",
     "Uruguai"
   ],
   "incluir_cadastro": true,
-  "incluir_leads": true
+  "incluir_leads": true,
+  "limites_por_linha": {
+    "+258 84 468 9369": 40
+  },
+  "cadastro_no_retalho": true
 }

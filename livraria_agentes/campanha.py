@@ -165,7 +165,28 @@ MENSAGENS = {
     },
 }
 
-CONFIG_PADRAO = {"por_linha_por_dia": 40, "paises_excluidos": [], "incluir_cadastro": True, "incluir_leads": True}
+CONFIG_PADRAO = {"por_linha_por_dia": 40, "limites_por_linha": {}, "paises_excluidos": [], "incluir_cadastro": True,
+                 "incluir_leads": True, "cadastro_no_retalho": False}
+
+# indicativo -> país (para números estrangeiros guardados no cadastro sem indicativo de Moçambique)
+PAIS_DO_INDICATIVO: dict[str, str] = {}
+for _nome, _codigo in INDICATIVOS.items():
+    PAIS_DO_INDICATIVO.setdefault(_codigo, " ".join(
+        p if p in ("do", "da", "de", "e") else p[:1].upper() + p[1:] for p in _nome.split()))
+
+
+def numero_estrangeiro(bruto: str) -> tuple[str, str] | None:
+    """'27785887249', '+351 960 399 537', '00244...' -> (número, país). Moçambique fica de fora (já tratado)."""
+    digitos = re.sub(r"\D", "", str(bruto or ""))
+    if digitos.startswith("00"):
+        digitos = digitos[2:]
+    if digitos.startswith("258") or not 10 <= len(digitos) <= 13:
+        return None
+    for tamanho in (3, 2, 1):
+        pais = PAIS_DO_INDICATIVO.get(digitos[:tamanho])
+        if pais:
+            return digitos, pais
+    return None
 
 
 def configuracao() -> dict:
@@ -280,24 +301,35 @@ def contactos(loja: Loja, leads: list[dict], config: dict | None = None) -> list
             return
         vistos.add(contacto["numero"])
         mz = contacto["numero"].startswith("258")
-        contacto["linha"] = (linha_do_tipo(contacto["tipo"]) if mz else None) or LINHA_INTERNACIONAL
+        tipo_da_linha = "Cliente VIP" if contacto.pop("_retalho", False) else contacto["tipo"]
+        contacto["linha"] = (linha_do_tipo(tipo_da_linha) if mz else None) or LINHA_INTERNACIONAL
         contacto["lingua"] = lingua_do_numero(contacto["numero"])
         saida.append(contacto)
 
     if config["incluir_cadastro"]:
         cadastro = [c for c in loja.dados.get("cadastro_clientes", []) if not NOME_GENERICO.search(_sem_acento(c["nome"]))]
         usos: dict[str, int] = {}
+        def numero_e_pais(c: dict) -> tuple[str, str] | None:
+            if c.get("whatsapp"):
+                return c["whatsapp"][0], "Moçambique"
+            return numero_estrangeiro(c.get("telefone"))  # cliente com número de outro país
+
         for c in cadastro:
-            for numero in c.get("whatsapp", [])[:1]:
-                usos[numero] = usos.get(numero, 0) + 1
+            achado = numero_e_pais(c)
+            if achado:
+                usos[achado[0]] = usos.get(achado[0], 0) + 1
         for c in cadastro:
-            for numero in c.get("whatsapp", [])[:1]:
-                if usos[numero] > MAX_REGISTOS_POR_NUMERO:
-                    continue  # número de central, usado por vários clientes
-                tipo = c["tipo"] if c["tipo"] not in ("Cliente", "Pastor", "Missionário") else "Cliente VIP"
-                tipo = "Livraria" if tipo in ("Revendedor", "Pastor revendedor") else tipo
-                junta({"id": f"cliente-{c['id_erp']}", "origem": "cadastro", "nome": c["nome"], "tipo": tipo,
-                       "tipo_cadastro": c["tipo"], "numero": numero, "pais": "Moçambique"})
+            achado = numero_e_pais(c)
+            if not achado or _sem_acento(achado[1]) in excluidos:
+                continue
+            numero, pais_cliente = achado
+            if usos[numero] > MAX_REGISTOS_POR_NUMERO:
+                continue  # número de central, usado por vários clientes
+            tipo = c["tipo"] if c["tipo"] not in ("Cliente", "Pastor", "Missionário") else "Cliente VIP"
+            tipo = "Livraria" if tipo in ("Revendedor", "Pastor revendedor") else tipo
+            junta({"id": f"cliente-{c['id_erp']}", "origem": "cadastro", "nome": c["nome"], "tipo": tipo,
+                   "tipo_cadastro": c["tipo"], "numero": numero, "pais": pais_cliente,
+                   "_retalho": config["cadastro_no_retalho"]})
     if config["incluir_leads"]:
         ordem = {"ALTA": 0, "MÉDIA": 1, "MEDIA": 1}
         for lead in sorted(leads, key=lambda l: ordem.get(str(l.get("pr") or "").upper(), 2)):
@@ -325,6 +357,11 @@ def mensagem(contacto: dict) -> str:
 
 def link(contacto: dict) -> str:
     return f"https://wa.me/{contacto['numero']}?text={quote(mensagem(contacto))}"
+
+
+def limite_da_linha(config: dict, linha: str) -> int:
+    """Limite diário de uma linha: limites_por_linha (ex.: subir o retalho depois do piloto) ou o geral."""
+    return int(config.get("limites_por_linha", {}).get(linha, config["por_linha_por_dia"]))
 
 
 # ------------------------------------------------------------------ lotes
@@ -361,14 +398,14 @@ class Campanha:
         estado = self._estado()
         if dia in estado["lotes"]:
             return estado["lotes"][dia]
-        limite = configuracao()["por_linha_por_dia"]
+        config = configuracao()
         optout = set(self.loja.dados.get("optout", {}))
         por_linha: dict[str, list] = {}
         for c in self.lista():
             if c["id"] in estado["feitos"] or c["numero"] in optout:
                 continue
             fila = por_linha.setdefault(c["linha"], [])
-            if len(fila) < limite:
+            if len(fila) < limite_da_linha(config, c["linha"]):
                 fila.append({**c, "link": link(c)})
         for fila in por_linha.values():
             for c in fila:
@@ -380,16 +417,19 @@ class Campanha:
 
     def progresso(self) -> dict:
         estado, lista = self._estado(), self.lista()
-        limite = configuracao()["por_linha_por_dia"]
+        config = configuracao()
+        limite = config["por_linha_por_dia"]
         por_linha: dict[str, dict] = {}
         for c in lista:
             p = por_linha.setdefault(c["linha"], {"total": 0, "contactados": 0})
             p["total"] += 1
             p["contactados"] += c["id"] in estado["feitos"]
-        for p in por_linha.values():
+        for linha, p in por_linha.items():
             falta = p["total"] - p["contactados"]
             p["faltam"] = falta
-            p["dias_para_terminar"] = -(-falta // limite) if limite else None
+            limite_linha = limite_da_linha(config, linha)
+            p["por_dia"] = limite_linha
+            p["dias_para_terminar"] = -(-falta // limite_linha) if limite_linha else None
         return {"por_linha_por_dia": limite, "linhas": por_linha,
                 "sairam_da_lista": len(self.loja.dados.get("optout", {})),
                 "sem_whatsapp": len(estado.get("sem_whatsapp", {}))}

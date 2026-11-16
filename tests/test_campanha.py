@@ -122,9 +122,9 @@ def test_mensagem_da_campanha_enviada_pela_app_nao_cala_o_robo(loja, tmp_path):
 def test_pagina_do_dia_com_links(loja, tmp_path):
     campanha = Campanha(loja, tmp_path / "campanha")
     campanha.arq_leads.write_text(json.dumps(LEADS))
-    pagina = campanha.pagina(campanha.lote(), "+258 86 504 8400")
-    assert "Linha +258 86 504 8400" in pagina and "wa.me/258847279956?text=" in pagina
-    assert "+258 84 468 9369" not in pagina
+    pagina = campanha.pagina(campanha.lote(), "+258 84 468 9369")  # cadastro todo no retalho, por agora
+    assert "Linha +258 84 468 9369" in pagina and "wa.me/258847279956?text=" in pagina
+    assert "Linha +258 87 712 7070" not in pagina
 
 
 def test_importa_leads_da_pagina_do_erp(tmp_path):
@@ -195,3 +195,33 @@ def test_brasil_e_uruguai_fora_da_campanha(loja):
     leads = LEADS + [{"id": "u1", "pa": "Uruguai", "org": "Iglesia", "numero": "59899123456"}]
     paises = {c["pais"] for c in contactos(loja, leads, config)}
     assert "Brasil" not in paises and "Uruguai" not in paises
+
+
+def test_cadastro_todo_no_retalho_e_estrangeiros_na_internacional(loja):
+    loja.dados["cadastro_clientes"] += [
+        {"id_erp": "20", "nome": "Igreja Batista de Joanesburgo", "tipo": "Igreja", "whatsapp": [],
+         "telefone": "27785887249"},
+        {"id_erp": "21", "nome": "Manuel Portugal", "tipo": "Cliente VIP", "whatsapp": [], "telefone": "+351 960 399 537"},
+        {"id_erp": "22", "nome": "Cliente Brasil", "tipo": "Cliente VIP", "whatsapp": [], "telefone": "5511996425654"},
+        {"id_erp": "23", "nome": "Fixo de Maputo", "tipo": "Cliente VIP", "whatsapp": [], "telefone": "21356800"},
+    ]
+    config = {**CONFIG_PADRAO, "cadastro_no_retalho": True, "paises_excluidos": ["Brasil"]}
+    por_id = {c["id"]: c for c in contactos(loja, [], config)}
+    assert {por_id[i]["linha"] for i in ("cliente-1", "cliente-2", "cliente-3")} == {"+258 84 468 9369"}
+    assert por_id["cliente-1"]["tipo"] == "Igreja"  # a mensagem continua a de igreja
+    assert por_id["cliente-20"]["linha"] == por_id["cliente-21"]["linha"] == "+258 87 712 7070"
+    assert por_id["cliente-20"]["pais"] == "África do Sul" and por_id["cliente-21"]["lingua"] == "pt"
+    assert "cliente-22" not in por_id and "cliente-23" not in por_id
+
+
+def test_limite_proprio_do_retalho(loja, tmp_path, monkeypatch):
+    import livraria_agentes.campanha as campanha_mod
+
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "campanha.json").write_text(json.dumps(
+        {"por_linha_por_dia": 1, "limites_por_linha": {"+258 84 468 9369": 2}, "cadastro_no_retalho": True}))
+    monkeypatch.setattr(campanha_mod, "_achar", lambda r: tmp_path / r)
+    campanha = Campanha(loja, tmp_path / "campanha")
+    lote = campanha.lote(date(2026, 11, 16))
+    assert len(lote["linhas"]["+258 84 468 9369"]) == 2
+    assert campanha.progresso()["linhas"]["+258 84 468 9369"]["por_dia"] == 2
