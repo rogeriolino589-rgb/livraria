@@ -73,8 +73,6 @@
   "contactos_por_tipo": {
     "+258 86 504 8400": [
       "Igreja",
-      "Pastor",
-      "Missionário",
       "Empresa / instituição"
     ],
     "+258 84 508 2787": [
@@ -84,6 +82,8 @@
     ],
     "+258 84 468 9369": [
       "Cliente VIP",
+      "Pastor",
+      "Missionário",
       "Cliente",
       "sem cadastro"
     ]
