@@ -90,6 +90,8 @@ def test_exemplo_tem_os_vendedores_da_cpad():
     ex = carregar(Path(__file__).resolve().parent.parent / "config" / "vendedores.exemplo.json")
     assert ex["+258 86 504 8400"]["nome"] == "Damião Sebastião Cau"
     assert ex["+258 84 508 2787"]["nome"] == "Sérgio Paulo Fernando"
+    assert ex["+258 87 712 7070"]["nome"] == "Priscila Vilanculos"
+    assert "+258 84 468 9369" not in ex  # retalho ainda sem vendedor
 
 
 def test_fora_da_janela_de_24h_usa_o_modelo_aprovado(loja):
@@ -105,3 +107,15 @@ def test_fora_da_janela_de_24h_usa_o_modelo_aprovado(loja):
     assert (numero, modelo) == ("258840000101", "aviso_vendedor")
     assert parametros == ["Maria", "Pedido novo PED-1", "Igreja Baptista da Maxaquene", "+258847000001"]
     assert texto.startswith("Olá, Maria! Pedido novo PED-1: Igreja Baptista da Maxaquene (+258847000001).")
+
+
+def test_outros_paises_vao_para_a_linha_internacional():
+    import os
+    import subprocess
+    import sys
+
+    env = {**os.environ, "LIVRARIA_PAIS": "za"}
+    saida = subprocess.run([sys.executable, "-c", "from livraria_agentes.vendedores import linha_do_tipo; "
+                            "print(linha_do_tipo('Igreja'), linha_do_tipo(None))"],
+                           env=env, capture_output=True, text=True, check=True).stdout
+    assert saida.split() == ["+258", "87", "712", "7070", "+258", "87", "712", "7070"]
