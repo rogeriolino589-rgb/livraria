@@ -40,7 +40,11 @@ fora=[[x['data'],x['tipo'],x['num'],x['qtd'],x['liq']] for x in sorted(A20+A22,k
 td=C.Counter()
 for x in M: td[x['data']]+=liq(x)
 big=[[x['data'],x['tipo'],x['num'],COD[x['vend']],r2(liq(x))] for x in sorted(M,key=lambda x:-liq(x))[:20]]
-out=dict(V=V,FPG=FPG,m=m,f=f,t=t,wd=[[a[0],r2(a[1]),len(a[2])] for a in wd[:6]],vp=[[p[0],r2(p[1]),r2(p[2]),r2(p[3]),p[4],r2(p[5])] for p in vp],
+import os
+AL=json.load(open(W+'/alvo_ref.json')) if os.path.exists(W+'/alvo_ref.json') else {}
+hyall=C.Counter()
+for r in H['dias']: hyall[r[0][:4]]+=r[4]
+out=dict(alvo=AL,hy={k:r2(v) for k,v in sorted(hyall.items())},V=V,FPG=FPG,m=m,f=f,t=t,wd=[[a[0],r2(a[1]),len(a[2])] for a in wd[:6]],vp=[[p[0],r2(p[1]),r2(p[2]),r2(p[3]),p[4],r2(p[5])] for p in vp],
  hist=dict(v=[[r2(h[n]),hd[n]] for n in V],y={y:[r2(hy[y]),r2(hf[y])] for y in sorted(hy)}),fora=fora,top=[[d,r2(v)] for d,v in td.most_common(15)],big=big,
  tot=dict(docs=len(M),merc=r2(sum(x['merc'] for x in M)),desc=r2(sum(x['desc'] for x in M)),liq=r2(sum(liq(x) for x in M)),total=r2(sum(x['total'] for x in M)),pago=r2(sum(x['pago'] for x in M))))
 json.dump(out,open(W+'/dv_dados.json','w'),ensure_ascii=False,separators=(',',':'));print(len(json.dumps(out)))
