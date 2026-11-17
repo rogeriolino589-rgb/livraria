@@ -31,8 +31,7 @@ for r in csv.reader(open(B+'borderos.tsv',encoding='utf-8'),delimiter='\t'):
     if not r or not r[0][:4] in ('2022','2023','2024','2025','2026'): continue
     d,op,ben,val,desc,orig=(r+['']*6)[:6]; c=cat(ben,desc); v=float(val)
     if c is None: continue
-    if d[:4] in ('2025','2026') and c=='IRPC': continue   # IRPC 2025–26 vem do Oreate
-    x={'id':'brd-'+re.sub(r'[^A-Za-z0-9-]','',op),'data':d,'tipo':'S','cat':c,'parte':ben.title()[:60],'fp':'Transferência bancária','valor':round(v,2),'nota':(desc+' · borderô: '+orig)[:220]}
+    x={'id':'brd-'+re.sub(r'[^A-Za-z0-9-]','',op),'data':d,'tipo':'S','cat':c,'parte':ben.title()[:60],'fp':'Transferência bancária','valor':round(v,2),'nota':('Saída administrativa (paga pela administração por transferência) · '+desc+' · borderô: '+orig)[:240]}
     if v<0: x.update(tipo='E',cat='Outras receitas',valor=round(-v,2),nota='Devolução recebida · '+x['nota'])
     out.append(x)
 SW=json.load(open(B+'swifts.json'))
@@ -50,13 +49,14 @@ for r in SW:
     if r.get('encargos'): out.append({'id':'swf-'+r['ref']+'-com','data':r['data'],'tipo':'S','cat':'Comissões bancárias','parte':'BCI','fp':'Transferência bancária','valor':round(r['encargos'],2),'nota':'Encargos da ordem de pagamento '+r['ref']})
 # Oreate 2025–2026: só as rubricas que os borderôs não cobrem
 o=json.load(open(B+'oreate_dados.json'));R=o['SAI_RUB'];D=o['SAI_DATA_M']
-TAKE={'Permissão de comércio varejista':'Permissão de comércio varejista','Gráfica':'Gráfica','Compra de passagens':'Compra de passagens','IRPC (incl. imposto por conta 2023)':'IRPC','Outros impostos':'Outros impostos','IVA':'IVA','Importação de livros — Casa Publicadora':'Compras de mercadoria (CPAD Brasil)'}
+TAKE={'Permissão de comércio varejista':'Permissão de comércio varejista','Gráfica':'Gráfica','Compra de passagens':'Compra de passagens','IRPC (incl. imposto por conta 2023)':'IRPC','Outros impostos':'Outros impostos','IVA':'IVA','Importação de livros — Casa Publicadora':'Compras de mercadoria (CPAD Brasil)','Conserto da carrinha':'Conserto da carrinha / mecânico','Mecânico':'Conserto da carrinha / mecânico'}
+ALLY={'Conserto da carrinha','Mecânico'}
 i=0
 for r in R:
     if r.get('g'): continue
     n=r['n']
     if n in TAKE:
-        for y in ('2025','2026'):
+        for y in (sorted(D) if n in ALLY else ('2025','2026')):
             for m,v in enumerate(D[y][i],1):
                 if v>0: out.append({'id':f"ore-sai-{y}-{m:02d}-"+re.sub(r'[^a-z]','',n.lower())[:18],'data':f"{y}-{m:02d}-{calendar.monthrange(int(y),m)[1]:02d}",'tipo':'S','cat':TAKE[n],'parte':'(total do mês — app Oreate)','fp':'Transferência bancária','valor':round(v,2),'nota':'Oreate · '+n+' · total mensal'})
     i+=1
