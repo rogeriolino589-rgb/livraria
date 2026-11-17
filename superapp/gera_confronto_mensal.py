@@ -32,7 +32,7 @@ for x in json.load(open(S+'fin_brd_swf.json')):
     if m not in ms: continue
     i=x['id']
     if x['tipo']=='E': V[m]['e_dev']+=x['valor']; continue
-    k='s_swf' if i.startswith('swf-') else 's_ore' if i.startswith('ore-sai') else 's_est' if i.startswith('est-') else 's_brd'
+    k='s_swf' if i.startswith('swf-') else 's_ore' if i.startswith('ore-sai') else 's_est' if i.startswith('est-') else 's_fol' if i.startswith('fol-') else 's_brd'
     V[m][k]+=x['valor']
 for x in json.load(open(S+'cc_oreate.json')):
     m=x['data'][:7]
@@ -40,7 +40,7 @@ for x in json.load(open(S+'cc_oreate.json')):
     V[m]['c_'+x['t']]+=x['v']
 COLS=[('Mês',None),
  ('ENTRADAS · Vendas cartão/POS/transferência','e_ven'),('ENTRADAS · Depósitos de dinheiro/cheque (D+1)','e_dep'),('ENTRADAS · Devoluções recebidas','e_dev'),('TOTAL ENTRADAS BANCO','E'),
- ('ADMIN · Borderôs administrativos','s_brd'),('ADMIN · Estimativas (sem borderô)','s_est'),('ADMIN · Oreate (rubricas sem borderô)','s_ore'),('SUBTOTAL DESPESAS ADMINISTRATIVAS','ADM'),
+ ('ADMIN · Borderôs administrativos','s_brd'),('ADMIN · Folha Scanaudit (recibos/guias reais, sem borderô)','s_fol'),('ADMIN · Estimativas (sem borderô)','s_est'),('ADMIN · Oreate (rubricas sem borderô)','s_ore'),('SUBTOTAL DESPESAS ADMINISTRATIVAS','ADM'),
  ('IMPORTAÇÕES · SWIFT (compras/fretes/comissões)','s_swf'),
  ('SAÍDA PARA RECARGA DO CARTÃO CORPORATIVO','c_R'),
  ('TOTAL SAÍDAS BANCO','S'),('Resultado do mês (banco)','RES'),('Banco acumulado desde jun/2022','ACC'),
@@ -48,7 +48,7 @@ COLS=[('Mês',None),
  ('CONTROLO CARTÃO · Recarga recebida','c_R'),('CONTROLO CARTÃO · Gastos no cartão','c_G'),('CONTROLO CARTÃO · Levantamentos','c_L'),('CONTROLO CARTÃO · Despesas pagas em dinheiro','c_D'),('CONTROLO CARTÃO · Saldo do cartão','SC'),('CONTROLO CARTÃO · Caixa pequena (dinheiro, transita)','SD')]
 rows=[];acc=loj=sc=0;sd=53679.51
 for m in ms:
-    v=V[m]; v['E']=v['e_ven']+v['e_dep']+v['e_dev']; v['ADM']=v['s_brd']+v['s_est']+v['s_ore']
+    v=V[m]; v['E']=v['e_ven']+v['e_dep']+v['e_dev']; v['ADM']=v['s_brd']+v['s_fol']+v['s_est']+v['s_ore']
     v['S']=v['ADM']+v['s_swf']+v['c_R']; v['RES']=v['E']-v['S']; acc+=v['RES']; v['ACC']=acc
     loj+=v['din']-v['e_dep']; v['LOJ']=loj; sc+=v['c_R']-v['c_G']-v['c_L']; v['SC']=sc; sd+=v['c_L']-v['c_D']; v['SD']=sd
     rows.append([m]+[round(v[k],2) for _,k in COLS[1:]])

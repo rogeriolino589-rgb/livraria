@@ -1,6 +1,8 @@
 import csv,json,statistics as st,calendar,sys
 from collections import defaultdict
 B='/home/user/livraria/relatorios/saidas_admin/'
+import os
+FOL={k:v for k,v in (json.load(open(B+'folha_scanaudit.json')).items() if os.path.exists(B+'folha_scanaudit.json') else []) if not k.startswith('_')}
 rows=[r for r in csv.reader(open(B+'borderos.tsv',encoding='utf-8'),delimiter='\t') if r]
 def kind(b,d):
     t=(b+' '+d).upper()
@@ -35,6 +37,13 @@ for k in CAT:
         elif k=='casa': v=55900.0 if m<'2023-03' else 90000.0
         elif k=='scan': v=31320.0
         else: v=round(med(k,m[:4])-part,2)
+        fo=FOL.get(m,{})
+        real=(sum(fo['sal'].values()) if k=='sal' and 'sal' in fo else fo.get('inss') if k=='inss' else None)
+        if real is not None:
+            v=round(real-M[(k,m)],2)
+            y,mm=map(int,m.split('-'))
+            if v>0.5: out.append({'id':f'fol-{k}-{m}','data':f'{m}-{calendar.monthrange(y,mm)[1]:02d}','tipo':'S','cat':CAT[k],'parte':'Folha Scanaudit — valor real','fp':'Transferência bancária','valor':v,'nota':('Valor real da folha da Scanaudit ('+('recibos de salário: '+', '.join(f'{n} {x:,.2f}' for n,x in fo['sal'].items()) if k=='sal' else 'guia do INSS')+')'+(f'; já há {M[(k,m)]:,.2f} em borderôs' if M[(k,m)] else '')+' — falta o borderô do banco')})
+            continue
         if v<=0: continue
         y,mm=map(int,m.split('-'))
         out.append({'id':f'est-{k}-{m}','data':f'{m}-{calendar.monthrange(y,mm)[1]:02d}','tipo':'S','cat':CAT[k],'parte':'ESTIMATIVA — sem comprovativo','fp':'Transferência bancária','valor':v,'nota':('ESTIMATIVA (diferença para a folha normal do mês; já há '+str(part)+' em borderôs) ' if part else 'ESTIMATIVA (valor fixo conhecido) ')+'— não há borderô deste mês; apagar/substituir quando aparecer o comprovativo','est':True})
@@ -42,4 +51,4 @@ json.dump(out,open(sys.argv[1],'w'),ensure_ascii=False)
 tot=defaultdict(float)
 for x in out: tot[(x['cat'],x['data'][:4])]+=x['valor']
 for c in CAT.values(): print(c,{y:round(tot[(c,y)]) for y in ['2022','2023','2024','2025','2026']},sum(1 for x in out if x['cat']==c),'meses')
-print('total',round(sum(x['valor'] for x in out)),len(out))
+print('total',round(sum(x['valor'] for x in out)),len(out),'| reais (folha):',sum(1 for x in out if x['id'].startswith('fol-')),round(sum(x['valor'] for x in out if x['id'].startswith('fol-'))))
