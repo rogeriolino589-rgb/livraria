@@ -60,6 +60,9 @@ for r in R:
             for m,v in enumerate(D[y][i],1):
                 if v>0: out.append({'id':f"ore-sai-{y}-{m:02d}-"+re.sub(r'[^a-z]','',n.lower())[:18],'data':f"{y}-{m:02d}-{calendar.monthrange(int(y),m)[1]:02d}",'tipo':'S','cat':TAKE[n],'parte':'(total do mês — app Oreate)','fp':'Transferência bancária','valor':round(v,2),'nota':'Oreate · '+n+' · total mensal'})
     i+=1
+import os
+E=os.path.join(os.path.dirname(sys.argv[1]),'estimativas.json')
+if os.path.exists(E): out+=json.load(open(E))
 assert len({x['id'] for x in out})==len(out)
 json.dump(out,open(sys.argv[1],'w'),ensure_ascii=False)
 c=Counter(x['id'][:7] for x in out); print(len(out),dict(c))

@@ -84,10 +84,10 @@ troca("const CCT={R:'Recarga (banco → cartão)',",CCAUTO+"\nconst CCT={R:'Reca
 # ---- borderôs (2022–2024) e SWIFTs (2019–2026) como saídas do banco; entram uma vez; editáveis; os apagados não voltam
 fbs=open(S+'/fin_brd_swf.json',encoding='utf-8').read().replace('</','<\\/')
 s=s.replace('<script id="histData" type="application/json">','<script id="finBrd" type="application/json">'+fbs+'</script>\n<script id="histData" type="application/json">')
-troca("if(confirm('Apagar este lançamento?')){F.mov=F.mov.filter(x=>x.id!==i);","if(confirm('Apagar este lançamento?')){if(/^(brd-|swf-|ore-ccfin-|ore-sai-)/.test(i)){F.cfg.delImp=F.cfg.delImp||[];F.cfg.delImp.push(i)}F.mov=F.mov.filter(x=>x.id!==i);")
+troca("if(confirm('Apagar este lançamento?')){F.mov=F.mov.filter(x=>x.id!==i);","if(confirm('Apagar este lançamento?')){if(/^(brd-|swf-|ore-ccfin-|ore-sai-|est-)/.test(i)){F.cfg.delImp=F.cfg.delImp||[];F.cfg.delImp.push(i)}F.mov=F.mov.filter(x=>x.id!==i);")
 FBAUTO="""// saídas do banco vindas dos borderôs do e-mail e dos SWIFTs do BCI (carregadas uma vez)
 async function finBrdAuto(){await init();if(!window.FIN)return;const L=JSON.parse(document.getElementById('finBrd').textContent||'[]'),F=await FIN.get(),del=(FIN.cfg().delImp||[]),tem=new Set((F.mov||[]).map(m=>m.id));
- const novos=L.filter(x=>!tem.has(x.id)&&!del.includes(x.id));if(novos.length){await FIN.addMany(novos);toast('Financeiro: '+novos.length+' saídas do banco carregadas (borderôs 2022–2026, SWIFTs 2019–2026 e Oreate 2025–2026).');render()}}
+ const novos=L.filter(x=>!tem.has(x.id)&&!del.includes(x.id));if(novos.length){await FIN.addMany(novos);toast('Financeiro: '+novos.length+' saídas do banco carregadas (borderôs, SWIFTs, Oreate e estimativas dos meses sem comprovativo).');render()}}
 setTimeout(()=>finBrdAuto().catch(e=>console.warn('finBrdAuto',e)),3500);"""
 troca("// cartão corporativo: movimentos do Oreate entram sozinhos",FBAUTO + "\n// cartão corporativo: movimentos do Oreate entram sozinhos")
 
