@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 
+from .pais import PAIS
 from .loja import TIPOS_AGENDAMENTO, ErroLoja, Loja
 
 AGENTES_VALIDOS = ["atendimento_vendas", "agendamento", "cobranca", "suporte_posvenda"]
@@ -36,11 +37,20 @@ FERRAMENTAS = [
                 "Busca livros no catálogo por título, autor, gênero ou assunto. Retorna até 8 livros com preço e estoque.",
                 {"consulta": {**TEXTO, "description": "Palavras-chave. Use '' para listar por gênero/preço."},
                  "genero": {**TEXTO_OU_NULO, "description": "Filtro de gênero, ou null."},
-                 "preco_max": {"type": ["number", "null"], "description": "Preço máximo em reais, ou null."}}),
+                 "preco_max": {"type": ["number", "null"], "description": f"Preço máximo em {PAIS.moeda}, ou null."}}),
     _ferramenta("detalhes_livro", "Mostra todos os dados de um livro, incluindo a sinopse.",
                 {"livro_id": {**TEXTO, "description": "Id do livro, ex.: L001."}}),
     _ferramenta("registrar_cliente", "Salva ou atualiza o nome do cliente desta conversa.",
                 {"nome": TEXTO}),
+    _ferramenta("calcular_orcamento",
+                "Calcula o valor de uma compra sem criar o pedido: subtotal, desconto de instituição (se o cliente "
+                "for igreja, instituição, revendedor ou livraria do cadastro e a compra chegar ao mínimo: 30% em "
+                "Livros e Bíblias CPAD e Harpa Cristã, 20% em Lições Bíblicas, 15% no resto), taxa de entrega e total.",
+                {"itens": {"type": "array", "items": {
+                    "type": "object",
+                    "properties": {"livro_id": TEXTO, "quantidade": {"type": "integer"}},
+                    "required": ["livro_id", "quantidade"], "additionalProperties": False}},
+                 "entrega": {"type": "string", "enum": ["retirada", "envio"]}}),
     _ferramenta("criar_pedido",
                 "Cria um pedido para o cliente desta conversa e devolve o link de pagamento. "
                 "Só use depois que o cliente confirmar os livros, as quantidades e a forma de entrega.",
@@ -49,7 +59,7 @@ FERRAMENTAS = [
                     "properties": {"livro_id": TEXTO, "quantidade": {"type": "integer"}},
                     "required": ["livro_id", "quantidade"], "additionalProperties": False}},
                  "entrega": {"type": "string", "enum": ["retirada", "envio"],
-                             "description": "'retirada' na loja (grátis) ou 'envio' (frete fixo de R$ 15)."}}),
+                             "description": "'retirada' = levantamento na loja (grátis); 'envio' = entrega ao domicílio (com taxa de entrega)."}}),
     _ferramenta("consultar_pedidos", "Lista os pedidos do cliente desta conversa, com status.", {}),
     _ferramenta("cancelar_pedido", "Cancela um pedido ainda não pago do cliente desta conversa.",
                 {"pedido_id": TEXTO}),
@@ -74,6 +84,9 @@ FERRAMENTAS = [
                 {"assunto": TEXTO, "descricao": TEXTO, "pedido_id": TEXTO_OU_NULO}),
     _ferramenta("registrar_avaliacao", "Registra a nota (1 a 5) e o comentário do cliente sobre um pedido.",
                 {"pedido_id": TEXTO, "nota": {"type": "integer"}, "comentario": TEXTO_OU_NULO}),
+    _ferramenta("registrar_pedido_oracao",
+                "Entrega à equipa um pedido de oração ou necessidade partilhada pelo cliente. Não é para vendas.",
+                {"pedido": {**TEXTO, "description": "O pedido, nas palavras do cliente."}}),
     _ferramenta("transferir_agente",
                 "Passa a conversa para outro agente da livraria quando o assunto é da área dele.",
                 {"agente": {"type": "string", "enum": AGENTES_VALIDOS},
@@ -96,6 +109,8 @@ def executar(loja: Loja, telefone: str, nome: str, entrada: dict) -> str:
         r = loja.detalhes_livro(e["livro_id"])
     elif nome == "registrar_cliente":
         r = loja.registrar_cliente(telefone, e["nome"])
+    elif nome == "calcular_orcamento":
+        r = loja.orcamento(telefone, e["itens"], e["entrega"])
     elif nome == "criar_pedido":
         r = loja.criar_pedido(telefone, e["itens"], e["entrega"])
     elif nome == "consultar_pedidos":
@@ -120,6 +135,8 @@ def executar(loja: Loja, telefone: str, nome: str, entrada: dict) -> str:
         r = loja.abrir_chamado(telefone, e["assunto"], e["descricao"], e.get("pedido_id"))
     elif nome == "registrar_avaliacao":
         r = loja.registrar_avaliacao(telefone, e["pedido_id"], int(e["nota"]), e.get("comentario"))
+    elif nome == "registrar_pedido_oracao":
+        r = loja.registrar_pedido_oracao(telefone, e["pedido"])
     elif nome == "chamar_humano":
         r = loja.pedir_humano(telefone, e["motivo"])
     else:

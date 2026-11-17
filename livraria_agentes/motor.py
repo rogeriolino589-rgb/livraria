@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import logging
+import unicodedata
+from datetime import datetime
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +21,8 @@ import anthropic
 from . import ferramentas
 from .agentes import AGENTE_INICIAL, AGENTES, SISTEMA
 from .loja import ErroLoja, Loja
+from .pais import PAIS
+from .textos import t
 
 log = logging.getLogger(__name__)
 
@@ -27,11 +31,20 @@ ESFORCO = os.environ.get("LIVRARIA_ESFORCO", "medium")  # low | medium | high
 MAX_PASSOS = 12  # chamadas ao modelo por mensagem do cliente
 BETA_FALLBACK = "server-side-fallback-2026-07-01"
 
+PALAVRAS_SAIR = {"sair", "stop", "parar", "cancelar", "arret", "arreter", "unsubscribe"}
+MARCAS_CAMPANHA = ("responda sair", "reply stop", "repondez stop")  # mensagens da campanha (enviadas por link)
+PALAVRA_DEVOLVER = "#robo"  # escrita pelo vendedor na app: o cliente volta para o robô
+HORAS_DEVOLVER = 24  # sem resposta humana pela app há mais do que isto, o robô volta a atender
+
+
+def normalizar_palavra(texto: str) -> str:
+    return unicodedata.normalize("NFKD", texto.lower()).encode("ascii", "ignore").decode()
+
+
 DIAS_SEMANA = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
 
-MSG_INSTABILIDADE = "Desculpe, tivemos uma instabilidade aqui. Pode mandar sua mensagem de novo em instantes? 🙏"
-MSG_RECUSA = "Desculpe, não consigo ajudar com isso por aqui. Posso te ajudar com livros, pedidos ou agendamentos?"
-MSG_HUMANO = "Sua mensagem foi encaminhada para a nossa equipe; um atendente responde em breve."
+MSG_INSTABILIDADE = t("instabilidade")
+MSG_RECUSA = t("recusa")
 
 
 @dataclass
@@ -42,11 +55,13 @@ class Resposta:
 
 
 class Motor:
-    def __init__(self, loja: Loja, pasta_conversas: Path, cliente: anthropic.Anthropic | None = None):
+    def __init__(self, loja: Loja, pasta_conversas: Path, cliente: anthropic.Anthropic | None = None,
+                 avisos=None):
         self.loja = loja
         self.pasta = Path(pasta_conversas)
         self.pasta.mkdir(parents=True, exist_ok=True)
         self._cliente = cliente
+        self.avisos = avisos  # vendedores.Avisos: avisa o vendedor da linha do cliente
 
     @property
     def cliente(self) -> anthropic.Anthropic:
@@ -84,23 +99,79 @@ class Motor:
             f"Agente ativo: {agente}.")
         self.salvar(estado)
 
+    def registrar_resposta_humana(self, telefone: str, texto: str) -> None:
+        estado = self.carregar(telefone)
+        estado["conversa_humana"] = estado.get("conversa_humana", []) + [f"Equipe: {texto}"]
+        self.salvar(estado)
+
+    def humano_respondeu_pela_app(self, telefone: str, texto: str) -> str:
+        """Um vendedor respondeu ao cliente pela app WhatsApp Business (coexistência). O robô cala-se nesta
+        conversa; se a mensagem tiver #robo, devolve o cliente ao robô. Devolve 'assumiu' ou 'devolveu'."""
+        if any(marca in normalizar_palavra(texto) for marca in MARCAS_CAMPANHA):
+            # Mensagem da campanha enviada pelo link: não é o vendedor a assumir; o robô atende a resposta.
+            estado = self.carregar(telefone)
+            estado["avisos_pendentes"].append(f"A loja enviou a este contacto a mensagem de apresentação: «{texto}»")
+            self.salvar(estado)
+            return "campanha"
+        if PALAVRA_DEVOLVER in normalizar_palavra(texto):
+            self.registrar_resposta_humana(telefone, texto)
+            self.liberar_humano(telefone)
+            return "devolveu"
+        estado = self.carregar(telefone)
+        estado["aguardando_humano"] = True
+        estado["humano_ultima_resposta"] = self.loja.relogio().isoformat(timespec="minutes")
+        estado["conversa_humana"] = estado.get("conversa_humana", []) + [f"Equipe: {texto}"]
+        self.salvar(estado)
+        return "assumiu"
+
+    def liberar_humano(self, telefone: str) -> None:
+        """A equipe terminou o atendimento: o robô volta a responder este cliente."""
+        estado = self.carregar(telefone)
+        estado["aguardando_humano"] = False
+        conversa = estado.pop("conversa_humana", [])
+        aviso = "Um atendente humano conversou com o cliente e devolveu o atendimento para os agentes."
+        if conversa:
+            aviso += " Conversa nesse período: " + " | ".join(f"«{m}»" for m in conversa)
+        estado["avisos_pendentes"].append(aviso)
+        self.salvar(estado)
+
     # ----------------------------------------------------------- conversa
     def responder(self, telefone: str, texto: str) -> Resposta:
         estado = self.carregar(telefone)
+        if normalizar_palavra(texto).strip(" .!") in PALAVRAS_SAIR:
+            self.loja.registrar_optout(telefone)
+            lingua = "fr" if normalizar_palavra(texto).strip(" .!") in ("arret", "arreter") else (
+                "en" if normalizar_palavra(texto).strip(" .!") in ("stop", "unsubscribe") else None)
+            return Resposta([t("optout_ok", lingua)], estado["agente"], estado["aguardando_humano"])
+        ultima = estado.get("humano_ultima_resposta")
+        if estado["aguardando_humano"] and ultima and (
+                self.loja.relogio() - datetime.fromisoformat(ultima)).total_seconds() > HORAS_DEVOLVER * 3600:
+            self.liberar_humano(telefone)  # ninguém respondeu pela app há mais de 24h: o robô volta
+            estado = self.carregar(telefone)
         if estado["aguardando_humano"]:
+            # Um atendente está cuidando da conversa: o robô fica quieto e só registra.
             self.loja.pedir_humano(telefone, f"Nova mensagem do cliente: {texto}")
-            return Resposta([MSG_HUMANO], estado["agente"], True)
+            estado["conversa_humana"] = estado.get("conversa_humana", []) + [f"Cliente: {texto}"]
+            self.salvar(estado)
+            return Resposta([], estado["agente"], True)
 
+        if not estado["mensagens"]:
+            self.loja.registrar_contato(telefone)
         msgs: list[dict] = estado["mensagens"]
         avisos = self._retirar_sistema_na_cauda(msgs)
         if not msgs:
             avisos.append(f"Agente ativo: {estado['agente']}.")
         momento = self.loja.relogio()
         if estado["contexto_em"] != momento.date().isoformat():
-            nome = self.loja.nome_cliente(telefone) or "ainda não informado"
+            ficha = self.loja.ficha_cliente(telefone)
             dia = DIAS_SEMANA[momento.weekday()]
-            avisos.append(f"Contexto: agora é {dia}, {momento:%d/%m/%Y %H:%M} (horário de Brasília). "
-                          f"Cliente: nome {nome}; WhatsApp {telefone}.")
+            cliente = f"nome {ficha.get('nome', 'ainda não informado')}"
+            if ficha.get("tipo"):
+                cliente += f"; no cadastro da CPAD como {ficha['tipo']}"
+            if ficha.get("cidade"):
+                cliente += f"; cidade {ficha['cidade']}"
+            avisos.append(f"Contexto: agora é {dia}, {momento:%d/%m/%Y %H:%M} (hora local, {PAIS.nome}). "
+                          f"Cliente: {cliente}; WhatsApp {telefone}.")
             estado["contexto_em"] = momento.date().isoformat()
         avisos += estado["avisos_pendentes"]
         estado["avisos_pendentes"] = []
@@ -181,7 +252,7 @@ class Motor:
                              f"Agente ativo agora: {novo_agente}. Motivo da transferência: {motivo} "
                              f"Continue o atendimento a partir daqui."})
         log.warning("Limite de passos atingido (%s)", telefone)
-        resposta.textos.append("Só um instante, vou verificar isso com a equipe.")
+        resposta.textos.append(t("verificar_equipa"))
 
     def _executar(self, estado: dict, agente: str, nome: str, entrada: dict) -> tuple[str, bool]:
         """Devolve (conteúdo do resultado, se é erro)."""
@@ -205,4 +276,20 @@ class Motor:
             return f"Entrada inválida para {nome}: {erro}", True
         if nome == "chamar_humano":
             estado["aguardando_humano"] = True
+            self._avisar(estado["telefone"], "Cliente pede atendimento", f"Motivo: {entrada.get('motivo', '')}")
+        elif nome == "criar_pedido":
+            pedido = json.loads(saida)
+            self._avisar(estado["telefone"], f"Pedido novo {pedido['id']}",
+                         f"Total: {PAIS.dinheiro(pedido['total'], True)}"
+                         + (f" (desconto {PAIS.dinheiro(pedido['desconto'], True)})" if pedido.get("desconto") else "")
+                         + f" · {'entrega ao domicílio' if pedido['entrega'] == 'envio' else 'levantamento na loja'}"
+                         + " · aguarda pagamento")
         return saida, False
+
+    def _avisar(self, telefone: str, assunto: str, detalhe: str) -> None:
+        if self.avisos is None:
+            return
+        try:
+            self.avisos.avisar(self.loja, telefone, assunto, detalhe)
+        except Exception:
+            log.exception("Falha ao avisar o vendedor (%s)", assunto)

@@ -1,0 +1,98 @@
+{
+  "_estado": "em uso",
+  "nome": "Moçambique",
+  "nome_loja": "CPAD Moçambique",
+  "moeda": "MZN",
+  "simbolo": "MT",
+  "simbolo_antes": false,
+  "separador_milhar": ".",
+  "separador_decimal": ",",
+  "fuso": "Africa/Maputo",
+  "lingua_clientes": "pt",
+  "descricao_lingua": "português de Moçambique (norma europeia: \"telemóvel\", \"levantar na loja\", \"facto\")",
+  "linguas_locais": [
+    "Português",
+    "Changana",
+    "Macua",
+    "Sena"
+  ],
+  "lingua_equipa": "pt",
+  "idioma_modelos_whatsapp": "pt_PT",
+  "indicativo": "258",
+  "digitos_nacionais": 9,
+  "prefixos_moveis": [
+    "8"
+  ],
+  "taxa_entrega": 250.0,
+  "imposto_nome": "IVA",
+  "imposto_taxa": 0.16,
+  "id_fiscal": "NUIT",
+  "observacoes": [
+    "As três carteiras (M-Pesa, e-Mola e mKesh) são interoperáveis desde 2022."
+  ],
+  "desconto_minimo": 5000.0,
+  "pagamentos": [
+    {
+      "id": "mpesa",
+      "nome": "M-Pesa",
+      "tipo": "carteira móvel",
+      "operador": "Vodacom"
+    },
+    {
+      "id": "emola",
+      "nome": "e-Mola",
+      "tipo": "carteira móvel",
+      "operador": "Movitel"
+    },
+    {
+      "id": "mkesh",
+      "nome": "mKesh",
+      "tipo": "carteira móvel",
+      "operador": "Tmcel"
+    },
+    {
+      "id": "transferencia",
+      "nome": "Transferência bancária",
+      "tipo": "banco"
+    },
+    {
+      "id": "cartao",
+      "nome": "Cartão / POS",
+      "tipo": "cartão"
+    },
+    {
+      "id": "numerario",
+      "nome": "Numerário",
+      "tipo": "numerário"
+    }
+  ],
+  "endereco": "Livraria CPAD Moçambique – Av. Eduardo Mondlane, nº 1.178, Maputo",
+  "contactos": "Igrejas: WhatsApp +258 86 504 8400; Empresas, instituições, livrarias e revendedores: WhatsApp +258 84 508 2787; Venda a retalho (clientes particulares, pastores, missionários): WhatsApp +258 84 468 9369; Atendimento internacional (inglês e francês): WhatsApp +258 87 712 7070",
+  "email": "mocambique@cpad.com.br",
+  "catalogo_url": "https://www.cpadweb.com.br/catalogos/c-geraldevendas-2025-2026/",
+  "contactos_por_tipo": {
+    "+258 86 504 8400": [
+      "Igreja"
+    ],
+    "+258 84 508 2787": [
+      "Empresa / instituição",
+      "Livraria",
+      "Revendedor",
+      "Pastor revendedor"
+    ],
+    "+258 84 468 9369": [
+      "Cliente VIP",
+      "Pastor",
+      "Missionário",
+      "Cliente",
+      "sem cadastro"
+    ]
+  },
+  "linhas_do_robo": [
+    "+258 86 504 8400",
+    "+258 84 468 9369",
+    "+258 84 508 2787",
+    "+258 87 712 7070"
+  ],
+  "_linhas_do_robo": "Linhas corporativas em que o robô atende (coexistência com a app WhatsApp Business dos vendedores)."
+}

@@ -1,0 +1,107 @@
+{
+  "_estado": "rascunho - confirmar com a equipa local antes de usar",
+  "nome": "África do Sul",
+  "nome_loja": "CPAD South Africa",
+  "moeda": "ZAR",
+  "simbolo": "R",
+  "simbolo_antes": true,
+  "separador_milhar": " ",
+  "separador_decimal": ".",
+  "fuso": "Africa/Johannesburg",
+  "lingua_clientes": "en",
+  "descricao_lingua": "inglês simples (se o cliente escrever em zulu, xhosa, afrikaans ou português, responda nessa língua se a souber bem; senão, em inglês)",
+  "linguas_locais": [
+    "English",
+    "isiZulu",
+    "isiXhosa",
+    "Afrikaans",
+    "Sesotho",
+    "Setswana"
+  ],
+  "lingua_equipa": "pt",
+  "idioma_modelos_whatsapp": "en",
+  "indicativo": "27",
+  "digitos_nacionais": 9,
+  "prefixos_moveis": [
+    "6",
+    "7",
+    "8"
+  ],
+  "taxa_entrega": 0.0,
+  "imposto_nome": "VAT",
+  "imposto_taxa": 0.15,
+  "id_fiscal": "VAT number",
+  "observacoes": [
+    "Proteção de dados: a lei POPIA exige consentimento para mensagens de marketing.",
+    "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático.",
+    "Preços: o catálogo é o mesmo da CPAD Moçambique; defina conversao_precos.fator ou importe a tabela de preços local."
+  ],
+  "desconto_minimo": null,
+  "pagamentos": [
+    {
+      "id": "cartao",
+      "nome": "Cartão / POS (incl. tap)",
+      "tipo": "cartão"
+    },
+    {
+      "id": "capitec_pay",
+      "nome": "Capitec Pay",
+      "tipo": "pagamento bancário",
+      "operador": "Capitec"
+    },
+    {
+      "id": "payshap",
+      "nome": "PayShap",
+      "tipo": "pagamento instantâneo",
+      "operador": "bancos sul-africanos"
+    },
+    {
+      "id": "qr",
+      "nome": "QR (SnapScan, Zapper, Scan to Pay)",
+      "tipo": "QR"
+    },
+    {
+      "id": "eft",
+      "nome": "EFT / Instant EFT",
+      "tipo": "banco"
+    },
+    {
+      "id": "carteira_digital",
+      "nome": "Apple Pay / Google Pay / Samsung Pay",
+      "tipo": "carteira digital"
+    },
+    {
+      "id": "numerario",
+      "nome": "Numerário",
+      "tipo": "numerário"
+    }
+  ],
+  "conversao_precos": {
+    "de": "MZN",
+    "fator": null,
+    "arredondar": 1,
+    "_ajuda": "Preço local = preço em MZN × fator, arredondado. Defina o fator (ou importe uma tabela de preços local) antes de vender."
+  },
+  "endereco": "",
+  "contactos": "Atendimento internacional (inglês e francês): WhatsApp +258 87 712 7070 (até haver número local)",
+  "email": "",
+  "catalogo_url": "https://www.cpadweb.com.br/catalogos/c-geraldevendas-2025-2026/",
+  "contactos_por_tipo": {
+    "+258 87 712 7070": [
+      "Igreja",
+      "Empresa / instituição",
+      "Livraria",
+      "Revendedor",
+      "Pastor revendedor",
+      "Cliente VIP",
+      "Pastor",
+      "Missionário",
+      "Cliente",
+      "sem cadastro"
+    ]
+  },
+  "linhas_do_robo": [
+    "+258 87 712 7070"
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "_estado": "rascunho - confirmar com a equipa local antes de usar",
+  "nome": "Ilhas Maurício",
+  "nome_loja": "CPAD Mauritius",
+  "moeda": "MUR",
+  "simbolo": "Rs",
+  "simbolo_antes": true,
+  "separador_milhar": ",",
+  "separador_decimal": ".",
+  "fuso": "Indian/Mauritius",
+  "lingua_clientes": "en",
+  "descricao_lingua": "inglês simples; muitos clientes escrevem em francês ou crioulo mauriciano: responda em francês a quem escreve em francês ou crioulo",
+  "linguas_locais": [
+    "English",
+    "Français",
+    "Kreol morisien"
+  ],
+  "lingua_equipa": "pt",
+  "idioma_modelos_whatsapp": "en",
+  "indicativo": "230",
+  "digitos_nacionais": 8,
+  "prefixos_moveis": [
+    "5"
+  ],
+  "taxa_entrega": 0.0,
+  "imposto_nome": "VAT",
+  "imposto_taxa": 0.15,
+  "id_fiscal": "BRN / VAT number",
+  "desconto_minimo": null,
+  "observacoes": [
+    "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático.",
+    "Preços: o catálogo é o mesmo da CPAD Moçambique; defina conversao_precos.fator ou importe a tabela de preços local."
+  ],
+  "pagamentos": [
+    {
+      "id": "mcb_juice",
+      "nome": "MCB Juice",
+      "tipo": "app bancária",
+      "operador": "MCB"
+    },
+    {
+      "id": "blink",
+      "nome": "blink by Emtel",
+      "tipo": "carteira móvel",
+      "operador": "Emtel"
+    },
+    {
+      "id": "myt_money",
+      "nome": "my.t money",
+      "tipo": "carteira móvel",
+      "operador": "Mauritius Telecom"
+    },
+    {
+      "id": "maucas_qr",
+      "nome": "QR MauCAS (qualquer app bancária)",
+      "tipo": "QR",
+      "operador": "Bank of Mauritius"
+    },
+    {
+      "id": "cartao",
+      "nome": "Cartão / POS",
+      "tipo": "cartão"
+    },
+    {
+      "id": "transferencia",
+      "nome": "Transferência bancária",
+      "tipo": "banco"
+    },
+    {
+      "id": "numerario",
+      "nome": "Numerário",
+      "tipo": "numerário"
+    }
+  ],
+  "conversao_precos": {
+    "de": "MZN",
+    "fator": null,
+    "arredondar": 1,
+    "_ajuda": "Preço local = preço em MZN × fator, arredondado. Defina o fator (ou importe uma tabela de preços local) antes de vender."
+  },
+  "endereco": "",
+  "contactos": "Atendimento internacional (inglês e francês): WhatsApp +258 87 712 7070 (até haver número local)",
+  "email": "",
+  "catalogo_url": "https://www.cpadweb.com.br/catalogos/c-geraldevendas-2025-2026/",
+  "contactos_por_tipo": {
+    "+258 87 712 7070": [
+      "Igreja",
+      "Empresa / instituição",
+      "Livraria",
+      "Revendedor",
+      "Pastor revendedor",
+      "Cliente VIP",
+      "Pastor",
+      "Missionário",
+      "Cliente",
+      "sem cadastro"
+    ]
+  },
+  "linhas_do_robo": [
+    "+258 87 712 7070"
+  ]
+}

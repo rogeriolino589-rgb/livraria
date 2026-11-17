@@ -16,7 +16,7 @@ from livraria_agentes.loja import FUSO, ErroLoja, Loja
 from livraria_agentes.motor import Motor
 
 AGORA = datetime(2026, 11, 16, 10, 0, tzinfo=FUSO)  # segunda-feira
-CLIENTE = "5511988887777"
+CLIENTE = "258851234567"
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def test_busca_com_filtro_de_preco(loja):
 def test_pedido_baixa_estoque_e_cancelamento_devolve(loja):
     loja.registrar_cliente(CLIENTE, "Carla")
     pedido = loja.criar_pedido(CLIENTE, [{"livro_id": "L001", "quantidade": 2}], "envio")
-    assert pedido["total"] == pytest.approx(29.9 * 2 + 15)
+    assert pedido["total"] == pytest.approx(650 * 2 + 250)
     assert pedido["link_pagamento"].endswith(pedido["id"])
     assert loja.detalhes_livro("L001")["estoque"] == 10
     loja.cancelar_pedido(CLIENTE, pedido["id"])
@@ -59,7 +59,7 @@ def test_cliente_nao_ve_pedido_de_outro(loja):
 
 
 def test_pagamento_informado_fica_em_verificacao(loja):
-    r = loja.informar_pagamento("5511900000001", "PED-DEMO01", "Pix às 9h")
+    r = loja.informar_pagamento("258840000001", "PED-DEMO01", "M-Pesa às 9h")
     assert r["status"] == "pagamento_em_verificacao"
 
 
@@ -68,9 +68,9 @@ def test_agendamento_respeita_vagas_e_horario(loja):
     assert livres[0] == "11:00"  # 9h e 10h já passaram
     assert loja.horarios_disponiveis("2026-11-22")["livres"] == []  # domingo
     loja.agendar(CLIENTE, "retirada", "2026-11-17T14:00", None)
-    loja.agendar("5511900000001", "retirada", "2026-11-17T14:00", None)
+    loja.agendar("258840000001", "retirada", "2026-11-17T14:00", None)
     with pytest.raises(ErroLoja, match="lotado"):
-        loja.agendar("5511900000002", "retirada", "2026-11-17T14:00", None)
+        loja.agendar("258840000002", "retirada", "2026-11-17T14:00", None)
     with pytest.raises(ErroLoja, match="Fora do horário"):
         loja.agendar(CLIENTE, "retirada", "2026-11-17T20:00", None)
 
@@ -119,7 +119,7 @@ def test_motor_venda_e_transferencia_para_agendamento(loja, tmp_path):
     falso = ClaudeFalso([
         _msg(_ferramenta(1, "buscar_livros", {"consulta": "machado", "genero": None, "preco_max": None}),
              stop="tool_use"),
-        _msg(_texto("Temos *Dom Casmurro* por R$ 29,90. Quer retirar na loja?")),
+        _msg(_texto("Temos *Dom Casmurro* por 650,00 MT. Quer retirar na loja?")),
         _msg(_ferramenta(2, "transferir_agente", {"agente": "agendamento", "motivo": "Quer marcar retirada"}),
              stop="tool_use"),
         _msg(_ferramenta(3, "horarios_disponiveis", {"data": "2026-11-17"}), stop="tool_use"),
@@ -128,7 +128,7 @@ def test_motor_venda_e_transferencia_para_agendamento(loja, tmp_path):
     motor = Motor(loja, tmp_path / "conversas", cliente=falso)
 
     r1 = motor.responder(CLIENTE, "Tem livro do Machado de Assis?")
-    assert r1.textos == ["Temos *Dom Casmurro* por R$ 29,90. Quer retirar na loja?"]
+    assert r1.textos == ["Temos *Dom Casmurro* por 650,00 MT. Quer retirar na loja?"]
     assert r1.agente == "atendimento_vendas"
 
     r2 = motor.responder(CLIENTE, "Sim, quero marcar a retirada")
@@ -171,8 +171,16 @@ def test_motor_humano_assume(loja, tmp_path):
     motor = Motor(loja, tmp_path / "c", cliente=falso)
     assert motor.responder(CLIENTE, "quero falar com uma pessoa").aguardando_humano
     r = motor.responder(CLIENTE, "oi?")
-    assert r.aguardando_humano and len(falso.chamadas) == 2  # o robô não responde mais
+    assert r.aguardando_humano and r.textos == [] and len(falso.chamadas) == 2  # o robô fica quieto
     assert len(loja.dados["fila_humana"]) == 2
+
+    # a equipe responde e devolve o cliente; o agente fica sabendo do que foi conversado
+    motor.registrar_resposta_humana(CLIENTE, "Resolvido, seu livro chega amanhã!")
+    motor.liberar_humano(CLIENTE)
+    falso.respostas.append(_msg(_texto("Posso ajudar em algo mais?")))
+    assert motor.responder(CLIENTE, "valeu!").textos == ["Posso ajudar em algo mais?"]
+    aviso = falso.chamadas[-1][-1]["content"]
+    assert "Cliente: oi?" in aviso and "Equipe: Resolvido" in aviso
 
 
 def test_lembretes_e_resposta_do_cliente(loja, tmp_path, capsys):
@@ -180,10 +188,10 @@ def test_lembretes_e_resposta_do_cliente(loja, tmp_path, capsys):
     motor = Motor(loja, tmp_path / "c", cliente=falso)
     assert rodar(loja, motor, CanalTerminal(), "Livraria Teste") == 2
     saida = capsys.readouterr().out
-    assert "PED-DEMO01" in saida and "Hábitos Atômicos" in saida
+    assert "PED-DEMO01" in saida and "Hábitos Atómicos" in saida
     assert rodar(loja, motor, CanalTerminal(), "Livraria Teste") == 0  # não repete no mesmo dia
 
-    r = motor.responder("5511900000001", "Esqueci! Manda o link?")
+    r = motor.responder("258840000001", "Esqueci! Manda o link?")
     assert r.agente == "cobranca"
     aviso = falso.chamadas[0][-1]
     assert aviso["role"] == "system" and "PED-DEMO01" in aviso["content"]

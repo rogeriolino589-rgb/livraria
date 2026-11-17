@@ -1,0 +1,98 @@
+{
+  "_estado": "rascunho - confirmar com a equipa local antes de usar",
+  "nome": "Eswatini",
+  "nome_loja": "CPAD Eswatini",
+  "moeda": "SZL",
+  "simbolo": "E",
+  "simbolo_antes": true,
+  "separador_milhar": " ",
+  "separador_decimal": ".",
+  "fuso": "Africa/Mbabane",
+  "lingua_clientes": "en",
+  "descricao_lingua": "inglês simples (o cliente pode escrever em siSwati: responda em inglês claro, ou em siSwati se a equipa aprovar)",
+  "linguas_locais": [
+    "English",
+    "siSwati"
+  ],
+  "lingua_equipa": "pt",
+  "idioma_modelos_whatsapp": "en",
+  "indicativo": "268",
+  "digitos_nacionais": 8,
+  "prefixos_moveis": [
+    "7"
+  ],
+  "taxa_entrega": 0.0,
+  "imposto_nome": "VAT",
+  "imposto_taxa": 0.15,
+  "id_fiscal": "TIN",
+  "observacoes": [
+    "O rand sul-africano (ZAR) também circula ao par com o lilangeni: decidir se aceita.",
+    "Taxa de entrega, formas de pagamento e taxa de imposto: confirmar localmente.",
+    "Política de descontos para instituições: definir o valor mínimo (desconto_minimo) na moeda local; até lá não há desconto automático.",
+    "Preços: o catálogo é o mesmo da CPAD Moçambique; defina conversao_precos.fator ou importe a tabela de preços local.",
+    "As carteiras e os bancos estão ligados pelo switch nacional de pagamentos (transferências instantâneas)."
+  ],
+  "desconto_minimo": null,
+  "pagamentos": [
+    {
+      "id": "mtn_momo",
+      "nome": "MTN MoMo",
+      "tipo": "carteira móvel",
+      "operador": "MTN Eswatini"
+    },
+    {
+      "id": "emali",
+      "nome": "e-Mali",
+      "tipo": "carteira móvel",
+      "operador": "Eswatini Mobile"
+    },
+    {
+      "id": "instacash",
+      "nome": "InstaCash",
+      "tipo": "carteira móvel",
+      "operador": "InstaCash (funciona em MTN e Eswatini Mobile)"
+    },
+    {
+      "id": "transferencia",
+      "nome": "Transferência bancária",
+      "tipo": "banco"
+    },
+    {
+      "id": "cartao",
+      "nome": "Cartão / POS",
+      "tipo": "cartão"
+    },
+    {
+      "id": "numerario",
+      "nome": "Numerário",
+      "tipo": "numerário"
+    }
+  ],
+  "conversao_precos": {
+    "de": "MZN",
+    "fator": null,
+    "arredondar": 1,
+    "_ajuda": "Preço local = preço em MZN × fator, arredondado. Defina o fator (ou importe uma tabela de preços local) antes de vender."
+  },
+  "endereco": "",
+  "contactos": "Atendimento internacional (inglês e francês): WhatsApp +258 87 712 7070 (até haver número local)",
+  "email": "",
+  "catalogo_url": "https://www.cpadweb.com.br/catalogos/c-geraldevendas-2025-2026/",
+  "contactos_por_tipo": {
+    "+258 87 712 7070": [
+      "Igreja",
+      "Empresa / instituição",
+      "Livraria",
+      "Revendedor",
+      "Pastor revendedor",
+      "Cliente VIP",
+      "Pastor",
+      "Missionário",
+      "Cliente",
+      "sem cadastro"
+    ]
+  },
+  "linhas_do_robo": [
+    "+258 87 712 7070"
+  ]
+}

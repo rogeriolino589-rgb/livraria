@@ -1,28 +1,22 @@
 {
   "livros": [
-    {"id": "L001", "titulo": "Dom Casmurro", "autor": "Machado de Assis", "genero": "Clássico brasileiro", "preco": 29.9, "estoque": 12, "sinopse": "Bentinho narra sua vida e o ciúme por Capitu, num dos maiores romances da literatura brasileira."},
-    {"id": "L002", "titulo": "Memórias Póstumas de Brás Cubas", "autor": "Machado de Assis", "genero": "Clássico brasileiro", "preco": 32.9, "estoque": 8, "sinopse": "Um defunto autor conta sua vida com ironia e humor ácido."},
-    {"id": "L003", "titulo": "Grande Sertão: Veredas", "autor": "João Guimarães Rosa", "genero": "Clássico brasileiro", "preco": 89.9, "estoque": 4, "sinopse": "Riobaldo relembra sua vida de jagunço no sertão e seu amor por Diadorim."},
-    {"id": "L004", "titulo": "A Hora da Estrela", "autor": "Clarice Lispector", "genero": "Romance", "preco": 39.9, "estoque": 10, "sinopse": "A história de Macabéa, nordestina no Rio de Janeiro, contada por um narrador inquieto."},
-    {"id": "L005", "titulo": "Torto Arado", "autor": "Itamar Vieira Junior", "genero": "Romance contemporâneo", "preco": 64.9, "estoque": 15, "sinopse": "Duas irmãs no sertão baiano, ligadas por um acidente de infância e pela luta pela terra."},
-    {"id": "L006", "titulo": "O Avesso da Pele", "autor": "Jeferson Tenório", "genero": "Romance contemporâneo", "preco": 59.9, "estoque": 7, "sinopse": "Um filho reconstrói a história do pai, professor negro morto numa abordagem policial."},
-    {"id": "L007", "titulo": "Sapiens: Uma Breve História da Humanidade", "autor": "Yuval Noah Harari", "genero": "Não ficção", "preco": 74.9, "estoque": 9, "sinopse": "Como o Homo sapiens passou a dominar o planeta, da revolução cognitiva à científica."},
-    {"id": "L008", "titulo": "Hábitos Atômicos", "autor": "James Clear", "genero": "Desenvolvimento pessoal", "preco": 54.9, "estoque": 20, "sinopse": "Pequenas mudanças diárias que geram grandes resultados."},
-    {"id": "L009", "titulo": "O Pequeno Príncipe", "autor": "Antoine de Saint-Exupéry", "genero": "Infantojuvenil", "preco": 24.9, "estoque": 25, "sinopse": "Um piloto perdido no deserto conhece um pequeno príncipe vindo de outro planeta."},
-    {"id": "L010", "titulo": "Harry Potter e a Pedra Filosofal", "autor": "J.K. Rowling", "genero": "Fantasia", "preco": 49.9, "estoque": 6, "sinopse": "Um menino descobre que é bruxo e vai estudar em Hogwarts."},
-    {"id": "L011", "titulo": "1984", "autor": "George Orwell", "genero": "Ficção distópica", "preco": 44.9, "estoque": 11, "sinopse": "Winston Smith vive sob a vigilância total do Grande Irmão."},
-    {"id": "L012", "titulo": "Duna", "autor": "Frank Herbert", "genero": "Ficção científica", "preco": 79.9, "estoque": 0, "sinopse": "Paul Atreides no planeta desértico Arrakis, fonte da especiaria mais valiosa do universo."},
-    {"id": "L013", "titulo": "O Hobbit", "autor": "J.R.R. Tolkien", "genero": "Fantasia", "preco": 59.9, "estoque": 5, "sinopse": "Bilbo Bolseiro parte numa aventura com anões para recuperar um tesouro guardado por um dragão."},
-    {"id": "L014", "titulo": "Pai Rico, Pai Pobre", "autor": "Robert Kiyosaki", "genero": "Finanças", "preco": 47.9, "estoque": 14, "sinopse": "Lições sobre dinheiro e investimentos a partir de duas figuras paternas."}
+    {"id": "L001", "titulo": "Dom Casmurro", "autor": "Machado de Assis", "genero": "Clássico brasileiro", "preco": 650.0, "estoque": 12, "sinopse": "Bentinho narra sua vida e o ciúme por Capitu, num dos maiores romances da literatura brasileira."},
+    {"id": "L002", "titulo": "Memórias Póstumas de Brás Cubas", "autor": "Machado de Assis", "genero": "Clássico brasileiro", "preco": 700.0, "estoque": 8, "sinopse": "Um defunto autor conta sua vida com ironia e humor ácido."},
+    {"id": "L003", "titulo": "Terra Sonâmbula", "autor": "Mia Couto", "genero": "Literatura moçambicana", "preco": 950, "estoque": 6, "sinopse": "Durante a guerra civil, um velho e um menino encontram os cadernos de um morto e a história de um país em ruínas."},
+    {"id": "L004", "titulo": "Niketche: Uma História de Poligamia", "autor": "Paulina Chiziane", "genero": "Literatura moçambicana", "preco": 900, "estoque": 10, "sinopse": "Rami descobre as outras mulheres do marido e transforma a traição numa aliança entre mulheres."},
+    {"id": "L005", "titulo": "Ualalapi", "autor": "Ungulani Ba Ka Khosa", "genero": "Literatura moçambicana", "preco": 800, "estoque": 15, "sinopse": "Contos sobre Ngungunhane, o último imperador de Gaza, entre a história e a lenda."},
+    {"id": "L006", "titulo": "Xigubo", "autor": "José Craveirinha", "genero": "Poesia", "preco": 600, "estoque": 7, "sinopse": "Poemas do maior poeta moçambicano, sobre Mafalala, resistência e identidade."},
+    {"id": "L007", "titulo": "Sapiens: Uma Breve História da Humanidade", "autor": "Yuval Noah Harari", "genero": "Não ficção", "preco": 1650.0, "estoque": 9, "sinopse": "Como o Homo sapiens passou a dominar o planeta, da revolução cognitiva à científica."},
+    {"id": "L008", "titulo": "Hábitos Atómicos", "autor": "James Clear", "genero": "Desenvolvimento pessoal", "preco": 1200.0, "estoque": 20, "sinopse": "Pequenas mudanças diárias que geram grandes resultados."},
+    {"id": "L009", "titulo": "O Pequeno Príncipe", "autor": "Antoine de Saint-Exupéry", "genero": "Infantojuvenil", "preco": 450.0, "estoque": 25, "sinopse": "Um piloto perdido no deserto conhece um pequeno príncipe vindo de outro planeta."},
+    {"id": "L010", "titulo": "Harry Potter e a Pedra Filosofal", "autor": "J.K. Rowling", "genero": "Fantasia", "preco": 1100.0, "estoque": 6, "sinopse": "Um menino descobre que é bruxo e vai estudar em Hogwarts."},
+    {"id": "L011", "titulo": "1984", "autor": "George Orwell", "genero": "Ficção distópica", "preco": 950.0, "estoque": 11, "sinopse": "Winston Smith vive sob a vigilância total do Grande Irmão."},
+    {"id": "L012", "titulo": "Duna", "autor": "Frank Herbert", "genero": "Ficção científica", "preco": 1750.0, "estoque": 0, "sinopse": "Paul Atreides no planeta desértico Arrakis, fonte da especiaria mais valiosa do universo."},
+    {"id": "L013", "titulo": "O Hobbit", "autor": "J.R.R. Tolkien", "genero": "Fantasia", "preco": 1300.0, "estoque": 5, "sinopse": "Bilbo Bolseiro parte numa aventura com anões para recuperar um tesouro guardado por um dragão."},
+    {"id": "L014", "titulo": "Pai Rico, Pai Pobre", "autor": "Robert Kiyosaki", "genero": "Finanças", "preco": 1050.0, "estoque": 14, "sinopse": "Lições sobre dinheiro e investimentos a partir de duas figuras paternas."}
   ],
-  "clientes": {
-    "5511900000001": {"nome": "Ana Souza"},
-    "5511900000002": {"nome": "Bruno Lima"}
-  },
-  "pedidos": [
-    {"id": "PED-DEMO01", "telefone": "5511900000001", "itens": [{"livro_id": "L005", "titulo": "Torto Arado", "quantidade": 1, "preco_unitario": 64.9}], "entrega": "envio", "frete": 15.0, "total": 79.9, "status": "aguardando_pagamento", "criado_em": "2026-11-08T10:00", "vencimento": "2026-11-10", "entregue_em": null, "lembretes_cobranca": 0, "pos_venda_enviado": false},
-    {"id": "PED-DEMO02", "telefone": "5511900000002", "itens": [{"livro_id": "L008", "titulo": "Hábitos Atômicos", "quantidade": 1, "preco_unitario": 54.9}], "entrega": "retirada", "frete": 0.0, "total": 54.9, "status": "entregue", "criado_em": "2026-10-28T15:30", "vencimento": "2026-10-30", "entregue_em": "2026-11-01T11:00", "lembretes_cobranca": 0, "pos_venda_enviado": false}
-  ],
+  "clientes": {"258840000001": {"nome": "Ana Macuácua"}, "258840000002": {"nome": "Bruno Sitoe"}},
+  "pedidos": [{"id": "PED-DEMO01", "telefone": "258840000001", "itens": [{"livro_id": "L005", "titulo": "Ualalapi", "quantidade": 1, "preco_unitario": 800}], "entrega": "envio", "frete": 250.0, "total": 1050.0, "status": "aguardando_pagamento", "criado_em": "2026-11-08T10:00", "vencimento": "2026-11-10", "entregue_em": null, "lembretes_cobranca": 0, "pos_venda_enviado": false}, {"id": "PED-DEMO02", "telefone": "258840000002", "itens": [{"livro_id": "L008", "titulo": "Hábitos Atómicos", "quantidade": 1, "preco_unitario": 1200.0}], "entrega": "retirada", "frete": 0.0, "total": 1200.0, "status": "entregue", "criado_em": "2026-10-28T15:30", "vencimento": "2026-10-30", "entregue_em": "2026-11-01T11:00", "lembretes_cobranca": 0, "pos_venda_enviado": false}],
   "agendamentos": [],
   "chamados": [],
   "avaliacoes": [],

@@ -1,0 +1,23 @@
+{
+  "_ajuda": "Vendedores de cada linha corporativa da CPAD Moçambique. O aviso vai para o WhatsApp corporativo da linha (nunca para números pessoais). Linha sem nome: sem aviso nem tarefa.",
+  "+258 86 504 8400": {
+    "nome": "Damião Sebastião Cau",
+    "atende": "igrejas",
+    "whatsapp": "258865048400"
+  },
+  "+258 84 508 2787": {
+    "nome": "Sérgio Paulo Fernando",
+    "atende": "empresas, instituições, revendedores e livrarias",
+    "whatsapp": "258845082787"
+  },
+  "+258 84 468 9369": {
+    "nome": "Responsável do retalho (piloto)",
+    "atende": "retalho (Clientes VIP, pastores, missionários) — acompanhado pela direção durante o piloto",
+    "whatsapp": "258844689369"
+  },
+  "+258 87 712 7070": {
+    "nome": "Priscila Vilanculos",
+    "atende": "atendimento internacional (inglês e francês), intermediação por enquanto",
+    "whatsapp": "258877127070"
+  }
+}

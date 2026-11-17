@@ -3,13 +3,14 @@ name = "livraria-agentes"
 version = "0.1.0"
 description = "Agentes de IA (Claude) para atendimento da livraria por WhatsApp"
 requires-python = ">=3.10"
-dependencies = ["anthropic>=2.8.0", "tzdata"]
+dependencies = ["anthropic>=2.8.0", "tzdata", "fastapi>=0.115", "uvicorn>=0.30", "httpx>=0.27", "openpyxl>=3.1", "pypdf>=5", "xlrd>=2"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
 
 [tool.setuptools]
-packages = ["livraria_agentes"]
+packages = ["livraria_agentes", "livraria_agentes.interno"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]

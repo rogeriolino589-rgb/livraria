@@ -1,0 +1,32 @@
+{
+  "_ajuda": "Códigos usados nos mapas do Eticadata (ERP19/ERP22). 'vendedores': código do vendedor no Diário de Vendas -> nome. 'meios_pagamento': nome no Mapa de Caixa -> forma de pagamento do ERP da CPAD. O código 3 aparece como INATIVO no ERP22 (era José Tovela no ERP19).",
+  "vendedores": {
+    "1": "Priscila Vilanculos",
+    "2": "Sérgio Paulo Fernando (Guacha)",
+    "3": "José Tovela",
+    "4": "Jorge Bembele",
+    "6": "Rodrigues Johane",
+    "7": "Damião Sebastião Cau"
+  },
+  "meios_pagamento": {
+    "Dinheiro": "numerario",
+    "Numerário Meticais": "numerario",
+    "Ponto 24": "cartao"
+  },
+  "ex_funcionarios": {
+    "3": "José Tovela — já não está na CPAD",
+    "4": "Jorge Bembele — já não está na CPAD",
+    "6": "Rodrigues Johane — já não está na CPAD"
+  },
+  "_tipos_cliente": "CLIENTE e CLIENTE VIP são o mesmo cliente de retalho (varejo): a nomenclatura mudou de CLIENTE para CLIENTE VIP quando a loja passou para a gestão atual.",
+  "equipa_atual": {
+    "vendas": {
+      "7": "Damião Sebastião Cau",
+      "2": "Sérgio Paulo Fernando (Guacha)"
+    },
+    "caixa": {
+      "1": "Priscila Vilanculos (já não faz vendas; é a operadora de caixa)"
+    }
+  },
+  "_equipa_nota": "As vendas antigas ficam sempre com o nome de quem as fez."
+}
