@@ -58,5 +58,28 @@ troca("const lista=t==='E'?ENT:t==='S'?SAI:TRF,cat=lista.includes(o.cat)?o.cat:l
 troca("<td><button data-fa=\"del\" data-i=\"'+x.id+'\">🗑</button></td></tr>'}","<td style=\"white-space:nowrap\"><button data-fa=\"ed\" data-i=\"'+x.id+'\" title=\"Editar\">✏️</button><button data-fa=\"del\" data-i=\"'+x.id+'\" title=\"Apagar\">🗑</button>'+(x.ed?' <small class=\"m\" title=\"Editado à mão: as importações não o substituem\">✎</small>':'')+'</td></tr>'}")
 troca(" else if(a==='del'){if(confirm('Apagar este lançamento?')){F.mov=F.mov.filter(x=>x.id!==i);save();render()}}",
  " else if(a==='del'){if(confirm('Apagar este lançamento?')){F.mov=F.mov.filter(x=>x.id!==i);save();render()}}\n else if(a==='ed'){const x=F.mov.find(m=>m.id===i);if(x)novo(x.tipo,x,x)}")
+
+# ---- cartão corporativo: movimentos do Oreate (CC_MONTH) carregados sozinhos; editáveis; os apagados/editados não voltam
+ccore=open(S+'/cc_oreate.json',encoding='utf-8').read().replace('</','<\\/')
+s=s.replace('<script id="histData" type="application/json">','<script id="ccOre" type="application/json">'+ccore+'</script>\n<script id="histData" type="application/json">')
+troca("function ccNovo(pre){pre=pre||{};const cats=window.FIN?FIN.CCAT:[];ask('Movimento do cartão corporativo',[{k:'t',l:'Tipo',t:'select',o:Object.values(CCT),v:CCT[pre.t||'R']},{k:'data',l:'Data',t:'date',v:hoje()},",
+ "function ccNovo(pre,ed){pre=pre||{};const cats0=window.FIN?FIN.CCAT:[],cats=pre.cat&&!cats0.includes(pre.cat)?cats0.concat([pre.cat]):cats0;ask(ed?'Editar movimento do cartão':'Movimento do cartão corporativo',[{k:'t',l:'Tipo',t:'select',o:Object.values(CCT),v:CCT[pre.t||'R']},{k:'data',l:'Data',t:'date',v:pre.data||hoje()},")
+troca("{k:'cat',l:'Categoria da despesa (para gasto no cartão / em dinheiro)',t:'select',o:cats,v:'Outras despesas da loja'},","{k:'cat',l:'Categoria da despesa (para gasto no cartão / em dinheiro)',t:'select',o:cats,v:pre.cat||'Outras despesas da loja'},")
+troca("{k:'lanc',l:'Recarga: lançar a saída do banco no Financeiro?',t:'select',o:['Sim','Não (já está lançada)'],v:'Sim'}],","{k:'lanc',l:'Recarga: lançar a saída do banco no Financeiro?',t:'select',o:['Sim','Não (já está lançada)'],v:ed?'Não (já está lançada)':'Sim'}],")
+troca("  const x={id:uid(),t,data:o.data,v:num(o.v),d:o.d.trim(),cat:(t==='G'||t==='D')?o.cat:''};",
+ "  if(ed){const x=(D.cc||[]).find(y=>y.id===ed.id);if(x){Object.assign(x,{t,data:o.data,v:num(o.v),d:o.d.trim(),cat:(t==='G'||t==='D')?o.cat:'',ed:new Date().toISOString()});if(x.fid&&window.FIN)await FIN.updMov(x.fid,{data:x.data,valor:x.v,ed:x.ed})}await saveNow();render();return}\n  const x={id:uid(),t,data:o.data,v:num(o.v),d:o.d.trim(),cat:(t==='G'||t==='D')?o.cat:''};")
+troca("<td><button data-lb=\"ccx\" data-i=\"'+x.id+'\">🗑</button></td></tr>')","<td style=\"white-space:nowrap\"><button data-lb=\"cce\" data-i=\"'+x.id+'\" title=\"Editar\">✏️</button><button data-lb=\"ccx\" data-i=\"'+x.id+'\" title=\"Apagar\">🗑</button>'+(x.ed?' <small class=\"m\" title=\"Editado à mão\">✎</small>':'')+(x.src==='oreate'?' <small class=\"m\" title=\"Importado do app Oreate (total do mês)\">ⓞ</small>':'')+'</td></tr>')")
+troca("const b=e.target.closest('#liv [data-lb=ccn],#liv [data-lb=ccx],","const b=e.target.closest('#liv [data-lb=ccn],#liv [data-lb=cce],#liv [data-lb=ccx],")
+troca(" if(a==='ccx'){if(confirm('Apagar este movimento?')){const x=D.cc.find(y=>y.id===b.dataset.i);D.cc=D.cc.filter(y=>y.id!==b.dataset.i);",
+ " if(a==='cce'){const x=(D.cc||[]).find(y=>y.id===b.dataset.i);if(x)ccNovo(x,x);return}\n if(a==='ccx'){if(confirm('Apagar este movimento?')){const x=D.cc.find(y=>y.id===b.dataset.i);if(x&&String(x.id).indexOf('ore-cc-')===0)(D.ccDel=D.ccDel||[]).push(x.id);D.cc=D.cc.filter(y=>y.id!==b.dataset.i);")
+CCAUTO="""// cartão corporativo: movimentos do Oreate entram sozinhos (uma vez); as recargas lançam a saída do banco no Financeiro
+async function ccOreAuto(){await init();const L=JSON.parse(document.getElementById('ccOre').textContent||'[]');D.cc=D.cc||[];const del=D.ccDel||[],tem=new Set(D.cc.map(x=>x.id));let n=0;
+ for(const y of L){if(tem.has(y.id)||del.includes(y.id))continue;const x=Object.assign({},y);
+  if(x.t==='R'&&window.FIN){x.fid='ore-ccfin-'+x.id.slice(7);const F=await FIN.get();if(!(F.mov||[]).some(m=>m.id===x.fid))await FIN.add({id:x.fid,data:x.data,tipo:'S',cat:'Recarga do cartão corporativo',parte:'Cartão corporativo',fp:'Transferência bancária',valor:x.v,nota:x.d})}
+  D.cc.push(x);n++}
+ if(n){await saveNow();toast('Cartão corporativo: '+n+' movimentos do Oreate carregados (jul/2022 – ago/2026).');render()}}
+setTimeout(()=>ccOreAuto().catch(e=>console.warn('ccOreAuto',e)),2500);"""
+troca("const CCT={R:'Recarga (banco → cartão)',",CCAUTO+"\nconst CCT={R:'Recarga (banco → cartão)',")
+
 open(S+'/superapp/index.html','w',encoding='utf-8').write(s)
 print('index.html',os.path.getsize(S+'/superapp/index.html'))
