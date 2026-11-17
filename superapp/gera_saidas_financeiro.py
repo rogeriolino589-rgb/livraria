@@ -64,6 +64,10 @@ for r in R:
 import os
 E=os.path.join(os.path.dirname(sys.argv[1]),'estimativas.json')
 if os.path.exists(E): out+=json.load(open(E))
+AJ=B+'ajustes_fin.json'
+if os.path.exists(AJ):
+    aj=json.load(open(AJ));rm=set(aj.get('remover',[]))
+    out=[x for x in out if x['id'] not in rm]+[x for x in aj.get('acrescentar',[]) if x['id'] not in {y['id'] for y in out}]
 assert len({x['id'] for x in out})==len(out)
 json.dump(out,open(sys.argv[1],'w'),ensure_ascii=False)
 c=Counter(x['id'][:7] for x in out); print(len(out),dict(c))
