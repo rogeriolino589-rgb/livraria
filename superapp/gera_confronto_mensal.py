@@ -4,7 +4,7 @@ from collections import defaultdict
 S='/tmp/claude-0/-home-user-livraria/295e8822-745d-5b40-9305-329d80bb252f/scratchpad/'
 B='/home/user/livraria/relatorios/saidas_admin/'
 o=json.load(open(B+'oreate_dados.json'))
-ms=[f'{y}-{m:02d}' for y in range(2022,2027) for m in range(1,13) if '2022-06'<=f'{y}-{m:02d}'<='2026-10']
+ms=[f'{y}-{m:02d}' for y in range(2022,2027) for m in range(1,13) if '2022-06'<=f'{y}-{m:02d}'<='2026-11']
 Z=lambda:defaultdict(float)
 V=defaultdict(Z)
 for r in o['DAILY']:
@@ -16,6 +16,14 @@ for r in o['DAILY']:
         nx=(dt.date.fromisoformat(r['d'])+dt.timedelta(days=1)).isoformat()[:7]
         if nx in ms: V[nx]['e_dep']+=c
     elif r['d']>DEP_ATE1: V[m]['e_dep']+=r['dep']
+# dias que o Oreate ainda não tem: mapas de caixa diários da loja (e-mail «Resumo de vendas diário»)
+import os
+_ore={r['d'] for r in o['DAILY']}
+_EX=B+'vendas_out_nov_2026_emails.json'
+if os.path.exists(_EX):
+    for r in json.load(open(_EX)):
+        if r['d'] in _ore or r['d'][:7] not in ms: continue
+        V[r['d'][:7]]['e_ven']+=r['pos']+r['transf']; V[r['d'][:7]]['din']+=r['din']
 for x in json.load(open(S+'fin_brd_swf.json')):
     m=x['data'][:7]
     if m not in ms: continue
