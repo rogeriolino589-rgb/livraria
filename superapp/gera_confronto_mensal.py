@@ -1,4 +1,5 @@
-import json,csv
+import json,csv,datetime as dt
+DEP_ATE='2026-10-14'; DEP_ATE1='2026-10-15'
 from collections import defaultdict
 S='/tmp/claude-0/-home-user-livraria/295e8822-745d-5b40-9305-329d80bb252f/scratchpad/'
 B='/home/user/livraria/relatorios/saidas_admin/'
@@ -9,7 +10,12 @@ V=defaultdict(Z)
 for r in o['DAILY']:
     m=r['d'][:7]
     if m not in ms: continue
-    V[m]['e_ven']+=r['car']+r['pos']+r['transf']; V[m]['e_dep']+=r['dep']; V[m]['din']+=r['din']+r['fatdin']+r['cheque']
+    V[m]['e_ven']+=r['car']+r['pos']+r['transf']; c=r['din']+r['fatdin']+r['cheque']; V[m]['din']+=c
+    # regra confirmada: dinheiro, fatura em dinheiro e cheque até 14/10/2026 foram todos depositados no dia seguinte
+    if r['d']<=DEP_ATE:
+        nx=(dt.date.fromisoformat(r['d'])+dt.timedelta(days=1)).isoformat()[:7]
+        if nx in ms: V[nx]['e_dep']+=c
+    elif r['d']>DEP_ATE1: V[m]['e_dep']+=r['dep']
 for x in json.load(open(S+'fin_brd_swf.json')):
     m=x['data'][:7]
     if m not in ms: continue
@@ -22,7 +28,7 @@ for x in json.load(open(S+'cc_oreate.json')):
     if m not in ms or x.get('nofin') or '-ini-' in x['id']: continue
     V[m]['c_'+x['t']]+=x['v']
 COLS=[('Mês',None),
- ('ENTRADAS · Vendas cartão/POS/transferência','e_ven'),('ENTRADAS · Depósitos de dinheiro','e_dep'),('ENTRADAS · Devoluções recebidas','e_dev'),('TOTAL ENTRADAS BANCO','E'),
+ ('ENTRADAS · Vendas cartão/POS/transferência','e_ven'),('ENTRADAS · Depósitos de dinheiro/cheque (D+1)','e_dep'),('ENTRADAS · Devoluções recebidas','e_dev'),('TOTAL ENTRADAS BANCO','E'),
  ('ADMIN · Borderôs administrativos','s_brd'),('ADMIN · Estimativas (sem borderô)','s_est'),('ADMIN · Oreate (rubricas sem borderô)','s_ore'),('SUBTOTAL DESPESAS ADMINISTRATIVAS','ADM'),
  ('IMPORTAÇÕES · SWIFT (compras/fretes/comissões)','s_swf'),
  ('SAÍDA PARA RECARGA DO CARTÃO CORPORATIVO','c_R'),
