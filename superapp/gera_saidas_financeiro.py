@@ -43,10 +43,11 @@ for r in SW:
     elif g=='Compra de viatura': c='Compra de viatura (parcelas)'
     elif 'MONICA' in b or 'AC CONTAB' in b: c='Pagamento ao estrangeiro (outros)'
     else: c='Pagamento ao estrangeiro (outras editoras)'
-    nota='SWIFT '+r['ref']+' · '+str(r['valor_moeda'])+' '+r['moeda']+((' · '+r['det']) if r.get('det') else '')
+    nota='SWIFT '+r['ref']+' · '+str(r['valor_moeda'])+' '+r['moeda']+((' · '+r['det']) if r.get('det') and not r.get('fatura') else '')
     if c=='Pagamento ao estrangeiro (outros)': nota+=' · saída confirmada pelo gerente'
-    out.append({'id':'swf-'+r['ref'],'data':r['data'],'tipo':'S','cat':c,'parte':r['benef'].title()[:60],'fp':'Transferência bancária','valor':round(r['mzn'],2),'nota':nota[:220]})
-    if r.get('encargos'): out.append({'id':'swf-'+r['ref']+'-com','data':r['data'],'tipo':'S','cat':'Comissões bancárias','parte':'BCI','fp':'Transferência bancária','valor':round(r['encargos'],2),'nota':'Encargos da ordem de pagamento '+r['ref']})
+    if r.get('fatura'): nota='Commercial Invoice '+r['fatura']+(' ('+r['parcela']+')' if r.get('parcela') else '')+' · '+nota
+    out.append({'id':'swf-'+r['ref'],'data':r['data'],'tipo':'S','cat':c,'parte':(r.get('benef_nome') or r['benef'].title())[:60],'fp':'Transferência bancária','valor':round(r['mzn'],2),'nota':nota[:220],'fat':r.get('fatura',''),'parc':r.get('parcela',''),'ref':r['ref']})
+    if r.get('encargos'): out.append({'id':'swf-'+r['ref']+'-com','data':r['data'],'tipo':'S','cat':'Comissões bancárias','parte':'BCI','fp':'Transferência bancária','valor':round(r['encargos'],2),'nota':'Encargos da ordem de pagamento '+r['ref']+' ('+(r.get('benef_nome') or r['benef'])+')','ref':r['ref']})
 # Oreate 2025–2026: só as rubricas que os borderôs não cobrem
 o=json.load(open(B+'oreate_dados.json'));R=o['SAI_RUB'];D=o['SAI_DATA_M']
 TAKE={'Permissão de comércio varejista':'Permissão de comércio varejista','Gráfica':'Gráfica','Compra de passagens':'Compra de passagens','IRPC (incl. imposto por conta 2023)':'IRPC','Outros impostos':'Outros impostos','IVA':'IVA','Importação de livros — Casa Publicadora':'Compras de mercadoria (CPAD Brasil)','Conserto da carrinha':'Conserto da carrinha / mecânico','Mecânico':'Conserto da carrinha / mecânico'}
