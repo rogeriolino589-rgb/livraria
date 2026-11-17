@@ -81,5 +81,15 @@ async function ccOreAuto(){await init();const L=JSON.parse(document.getElementBy
 setTimeout(()=>ccOreAuto().catch(e=>console.warn('ccOreAuto',e)),2500);"""
 troca("const CCT={R:'Recarga (banco → cartão)',",CCAUTO+"\nconst CCT={R:'Recarga (banco → cartão)',")
 
+# ---- borderôs (2022–2024) e SWIFTs (2019–2026) como saídas do banco; entram uma vez; editáveis; os apagados não voltam
+fbs=open(S+'/fin_brd_swf.json',encoding='utf-8').read().replace('</','<\\/')
+s=s.replace('<script id="histData" type="application/json">','<script id="finBrd" type="application/json">'+fbs+'</script>\n<script id="histData" type="application/json">')
+troca("if(confirm('Apagar este lançamento?')){F.mov=F.mov.filter(x=>x.id!==i);","if(confirm('Apagar este lançamento?')){if(/^(brd-|swf-|ore-ccfin-)/.test(i)){F.cfg.delImp=F.cfg.delImp||[];F.cfg.delImp.push(i)}F.mov=F.mov.filter(x=>x.id!==i);")
+FBAUTO="""// saídas do banco vindas dos borderôs do e-mail e dos SWIFTs do BCI (carregadas uma vez)
+async function finBrdAuto(){await init();if(!window.FIN)return;const L=JSON.parse(document.getElementById('finBrd').textContent||'[]'),F=await FIN.get(),del=(FIN.cfg().delImp||[]),tem=new Set((F.mov||[]).map(m=>m.id));
+ const novos=L.filter(x=>!tem.has(x.id)&&!del.includes(x.id));if(novos.length){await FIN.addMany(novos);toast('Financeiro: '+novos.length+' saídas do banco carregadas (borderôs 2022–2024 e SWIFTs 2019–2026).');render()}}
+setTimeout(()=>finBrdAuto().catch(e=>console.warn('finBrdAuto',e)),3500);"""
+troca("// cartão corporativo: movimentos do Oreate entram sozinhos",FBAUTO + "\n// cartão corporativo: movimentos do Oreate entram sozinhos")
+
 open(S+'/superapp/index.html','w',encoding='utf-8').write(s)
 print('index.html',os.path.getsize(S+'/superapp/index.html'))
