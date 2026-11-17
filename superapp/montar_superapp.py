@@ -91,5 +91,11 @@ async function finBrdAuto(){await init();if(!window.FIN)return;const L=JSON.pars
 setTimeout(()=>finBrdAuto().catch(e=>console.warn('finBrdAuto',e)),3500);"""
 troca("// cartão corporativo: movimentos do Oreate entram sozinhos",FBAUTO + "\n// cartão corporativo: movimentos do Oreate entram sozinhos")
 
+# ---- saídas do banco com categoria «Recarga do cartão corporativo» entram sozinhas no saldo do cartão (sem duplicar as que já têm movimento ligado)
+troca("function ccCalc(){const L=(D.cc||[]).slice()","function ccAll(){const L=(D.cc||[]).slice(),lig=new Set(L.map(x=>x.fid).filter(Boolean)),F=window.FIN&&FIN.peek?FIN.peek():null;\n (F&&F.mov||[]).forEach(m=>{if(m.tipo==='S'&&m.cat==='Recarga do cartão corporativo'&&!lig.has(m.id)&&m.data)L.push({id:'fin:'+m.id,t:'R',data:String(m.data),v:+m.valor||0,d:(m.nota||'Recarga lançada no Financeiro'),cat:'',src:'fin'})});return L}\nfunction ccCalc(){const L=ccAll()")
+troca("function R_cc(){const L=(D.cc||[]),all=ccCalc()","function R_cc(){const L=ccAll(),all=ccCalc()")
+troca("'+mz(x.v)+'</td><td style=\"white-space:nowrap\"><button data-lb=\"cce\"","'+mz(x.v)+'</td><td style=\"white-space:nowrap\">'+(x.src==='fin'?'<small class=\"m\" title=\"Saída do banco lançada no Financeiro; edite lá\">🏦 do Financeiro</small>':'<button data-lb=\"cce\"")
+troca("(x.src==='oreate'?' <small class=\"m\" title=\"Importado do app Oreate (total do mês)\">ⓞ</small>':'')+'</td></tr>')","(x.src==='oreate'?' <small class=\"m\" title=\"Importado do app Oreate (total do mês)\">ⓞ</small>':''))+'</td></tr>')")
+
 open(S+'/superapp/index.html','w',encoding='utf-8').write(s)
 print('index.html',os.path.getsize(S+'/superapp/index.html'))
