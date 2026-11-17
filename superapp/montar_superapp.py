@@ -124,9 +124,9 @@ troca("const novos=L.filter(x=>!tem.has(x.id)&&!del.includes(x.id));if(novos.len
 troca("+modCard('SWIFT por destino',swC,'','Destino')+","+modCard('SWIFT por destino',swC,'','Destino')+modCard('SWIFT por beneficiário',porMod(SW.filter(x=>!/-com$/.test(x.id)),x=>x.parte||'—',x=>+x.valor||0),'','Beneficiário')+swTab(SW)+")
 troca("const RCC='Recarga do cartão corporativo',","function swTab(SW){const com={};SW.forEach(x=>{if(/-com$/.test(x.id))com[x.id.slice(0,-4)]=(com[x.id.slice(0,-4)]||0)+(+x.valor||0)});const L=SW.filter(x=>!/-com$/.test(x.id)).sort((a,b)=>String(a.parte).localeCompare(String(b.parte))||String(a.data).localeCompare(String(b.data)));\n return '<div class=\"card\"><b>Pagamentos por beneficiário, nº da fatura comercial e data de pagamento</b><p class=\"m\">Os borderôs do BCI não trazem o nº da fatura; os números vêm dos e-mails de pedido de pagamento. «—» = fatura não indicada.</p><div class=\"tw\"><table><tr><th>Beneficiário</th><th>Data de pagamento</th><th>Nº fatura comercial</th><th>Parcela</th><th class=\"r\">Valor MZN</th><th class=\"r\">Comissões BCI</th><th>Ref. BCI</th></tr>'+(L.length?L.map(x=>'<tr><td>'+esc(x.parte||'')+'</td><td>'+fdt(x.data)+'</td><td>'+(x.fat?'<b>'+esc(x.fat)+'</b>':'<span class=\"m\">—</span>')+'</td><td>'+esc(x.parc||'')+'</td><td class=\"r\">'+mz(x.valor)+'</td><td class=\"r\">'+mz(com[x.id]||0)+'</td><td><small>'+esc(x.ref||String(x.id).replace('swf-',''))+'</small></td></tr>').join(''):'<tr><td colspan=\"7\" class=\"m\">Sem SWIFT neste período.</td></tr>')+'</table></div></div>'}\nconst RCC='Recarga do cartão corporativo',")
 
-# ---- dinheiro, fatura em dinheiro e cheque recebidos até 14/10/2026 foram todos depositados no dia seguinte (confirmado pela administração)
+# ---- dinheiro, fatura em dinheiro e cheque recebidos até 14/11/2026 foram todos depositados no dia seguinte (confirmado pela administração)
 DEPAUTO="""// depósito D+1 automático: tudo o que entrou em dinheiro/fatura em dinheiro/cheque até à data confirmada foi depositado no dia seguinte
-const DEP_ATE='2026-10-14';
+const DEP_ATE='2026-11-14';
 async function depAuto(){await init();if(!window.FIN)return;const F=await FIN.get(),mv=F.mov||[],del=(FIN.cfg().delImp||[]),rec={},dep={},aut={};
  mv.forEach(x=>{const d=String(x.data).slice(0,10),v=+x.valor||0;if(String(x.id).indexOf('dep-auto-')===0){aut[x.id]=x;return}
   if(x.tipo==='E'&&FIN.isCash(x.fp)&&d<=DEP_ATE)rec[d]=(rec[d]||0)+v;else if(x.tipo==='T'&&String(x.cat).indexOf('Depósito')===0)dep[d]=(dep[d]||0)+v});
@@ -135,9 +135,9 @@ async function depAuto(){await init();if(!window.FIN)return;const F=await FIN.ge
  const novos=[];let n=0;
  for(const id of Object.keys(aut)){const a=aut[id];if(a.ed)continue;const q=quer[id];if(!q){await FIN.delMov(id);n++}else if(Math.abs((+a.valor||0)-q.v)>0.004){await FIN.updMov(id,{valor:q.v});n++}}
  for(const id of Object.keys(quer)){if(aut[id]||del.includes(id))continue;const d=quer[id].d,nx=new Date(d+'T12:00:00Z');nx.setUTCDate(nx.getUTCDate()+1);
-  novos.push({id,data:nx.toISOString().slice(0,10),tipo:'T',cat:'Depósito (caixa → banco)',parte:'',fp:'—',valor:quer[id].v,nota:'Depósito do dia seguinte: dinheiro, fatura em dinheiro e cheque ainda por depositar em '+d.split('-').reverse().join('/')+' (confirmado: tudo até 14/10/2026 foi depositado)'})}
+  novos.push({id,data:nx.toISOString().slice(0,10),tipo:'T',cat:'Depósito (caixa → banco)',parte:'',fp:'—',valor:quer[id].v,nota:'Depósito do dia seguinte: dinheiro, fatura em dinheiro e cheque ainda por depositar em '+d.split('-').reverse().join('/')+' (confirmado: tudo até 14/11/2026 foi depositado)'})}
  if(novos.length)await FIN.addMany(novos);
- if(novos.length||n){toast('Financeiro: dinheiro e cheques até 14/10/2026 marcados como depositados no dia seguinte ('+(novos.length+n)+' dias).');render()}}
+ if(novos.length||n){toast('Financeiro: dinheiro e cheques até 14/11/2026 marcados como depositados no dia seguinte ('+(novos.length+n)+' dias).');render()}}
 setTimeout(()=>depAuto().catch(e=>console.warn('depAuto',e)),4500);"""
 troca("// cartão corporativo: movimentos do Oreate entram sozinhos",DEPAUTO + "\n// cartão corporativo: movimentos do Oreate entram sozinhos")
 

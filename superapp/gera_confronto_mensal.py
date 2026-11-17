@@ -1,5 +1,5 @@
 import json,csv,datetime as dt
-DEP_ATE='2026-10-14'; DEP_ATE1='2026-10-15'
+DEP_ATE='2026-11-14'; DEP_ATE1='2026-11-15'
 from collections import defaultdict
 S='/tmp/claude-0/-home-user-livraria/295e8822-745d-5b40-9305-329d80bb252f/scratchpad/'
 B='/home/user/livraria/relatorios/saidas_admin/'
@@ -24,6 +24,9 @@ if os.path.exists(_EX):
     for r in json.load(open(_EX)):
         if r['d'] in _ore or r['d'][:7] not in ms: continue
         V[r['d'][:7]]['e_ven']+=r['pos']+r['transf']; V[r['d'][:7]]['din']+=r['din']
+        if r['d']<=DEP_ATE:
+            nx=(dt.date.fromisoformat(r['d'])+dt.timedelta(days=1)).isoformat()[:7]
+            if nx in ms: V[nx]['e_dep']+=r['din']
 for x in json.load(open(S+'fin_brd_swf.json')):
     m=x['data'][:7]
     if m not in ms: continue
